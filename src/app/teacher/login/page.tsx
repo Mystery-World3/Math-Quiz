@@ -58,7 +58,7 @@ export default function TeacherLoginPage() {
                 <Input 
                   id="password" 
                   type="password" 
-                  placeholder="enter your passoword" 
+                  placeholder="Enter Your Password" 
                   className="h-12"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
