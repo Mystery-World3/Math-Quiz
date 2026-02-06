@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -36,16 +35,30 @@ export default function TeacherResults() {
   const [editName, setEditName] = useState('');
   const [editScore, setEditScore] = useState(0);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, studentName: string) => {
     if (!db || !id) {
-      toast({ title: "Error", description: "ID data tidak valid.", variant: "destructive" });
+      toast({ 
+        title: "Error", 
+        description: "ID data tidak valid.", 
+        variant: "destructive" 
+      });
       return;
     }
     
-    if (confirm('Apakah Anda yakin ingin menghapus data pengerjaan ini? Data ini akan hilang dari laporan dan dashboard secara otomatis.')) {
-      // Kita tidak perlu menunggu (await) karena hook useCollection akan menangani update UI secara optimis
-      deleteSubmission(db, id);
-      toast({ title: "Memproses", description: "Data sedang dihapus dari database..." });
+    if (confirm(`Apakah Anda yakin ingin menghapus data pengerjaan dari "${studentName}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      try {
+        await deleteSubmission(db, id);
+        toast({ 
+          title: "Berhasil", 
+          description: `Data "${studentName}" telah dikirim untuk dihapus.`,
+        });
+      } catch (e) {
+        toast({
+          title: "Gagal Menghapus",
+          description: "Terjadi kesalahan saat mencoba menghapus data.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -167,7 +180,7 @@ export default function TeacherResults() {
                             <Button variant="ghost" size="icon" className="text-blue-500" onClick={() => handleEdit(s)}>
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(s.id)}>
+                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(s.id, s.studentName)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
