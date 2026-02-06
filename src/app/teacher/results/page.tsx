@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -23,7 +24,6 @@ export default function TeacherResults() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Real-time collection
   const submissionsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
@@ -31,22 +31,21 @@ export default function TeacherResults() {
 
   const { data: submissions, loading } = useCollection<Submission>(submissionsQuery);
 
-  // Edit state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingResult, setEditingResult] = useState<Submission | null>(null);
   const [editName, setEditName] = useState('');
   const [editScore, setEditScore] = useState(0);
 
   const handleDelete = async (id: string) => {
-    if (!db || !id) return;
+    if (!db || !id) {
+      toast({ title: "Error", description: "ID data tidak valid.", variant: "destructive" });
+      return;
+    }
+    
     if (confirm('Apakah Anda yakin ingin menghapus data pengerjaan ini? Data ini akan hilang dari laporan dan dashboard secara otomatis.')) {
-      try {
-        await deleteSubmission(db, id);
-        toast({ title: "Berhasil", description: "Data pengerjaan siswa telah dihapus." });
-      } catch (error) {
-        console.error("Delete error:", error);
-        toast({ title: "Gagal", description: "Terjadi kesalahan saat menghapus data.", variant: "destructive" });
-      }
+      // Kita tidak perlu menunggu (await) karena hook useCollection akan menangani update UI secara optimis
+      deleteSubmission(db, id);
+      toast({ title: "Memproses", description: "Data sedang dihapus dari database..." });
     }
   };
 
@@ -59,16 +58,12 @@ export default function TeacherResults() {
 
   const handleSaveEdit = async () => {
     if (!db || !editingResult) return;
-    try {
-      await updateSubmission(db, editingResult.id, {
-        studentName: editName,
-        score: editScore
-      });
-      setIsEditModalOpen(false);
-      toast({ title: "Berhasil", description: "Data pengerjaan siswa telah diperbarui." });
-    } catch (error) {
-      toast({ title: "Gagal", description: "Gagal memperbarui data.", variant: "destructive" });
-    }
+    updateSubmission(db, editingResult.id, {
+      studentName: editName,
+      score: editScore
+    });
+    setIsEditModalOpen(false);
+    toast({ title: "Memproses", description: "Pembaruan data sedang dikirim..." });
   };
 
   const filteredSubmissions = useMemo(() => {
