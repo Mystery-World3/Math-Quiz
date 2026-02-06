@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -11,20 +10,36 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { getClasses, saveClass, deleteClass } from '@/lib/storage';
 import { ClassLevelData } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, Settings, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { useFirestore } from '@/firebase';
 
 export default function ManageClasses() {
+  const db = useFirestore();
   const [classes, setClasses] = useState<ClassLevelData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassLevelData | null>(null);
   const [classNameInput, setClassNameInput] = useState('');
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const loadClasses = async () => {
+    if (!db) return;
+    setLoading(true);
+    try {
+      const data = await getClasses(db);
+      setClasses(data);
+    } catch (error) {
+      console.error("Error loading classes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setClasses(getClasses());
-  }, []);
+    loadClasses();
+  }, [db]);
 
   const handleEdit = (c: ClassLevelData) => {
     setEditingClass(c);
@@ -32,31 +47,41 @@ export default function ManageClasses() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!db) return;
     if (confirm('Menghapus kelas akan berdampak pada soal dan nilai yang menggunakan kelas ini. Lanjutkan?')) {
-      deleteClass(id);
-      setClasses(getClasses());
-      toast({ title: "Berhasil", description: "Kelas telah dihapus." });
+      try {
+        await deleteClass(db, id);
+        await loadClasses();
+        toast({ title: "Berhasil", description: "Kelas telah dihapus." });
+      } catch (error) {
+        toast({ title: "Gagal", description: "Terjadi kesalahan saat menghapus kelas.", variant: "destructive" });
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!db) return;
     if (!classNameInput.trim()) {
       toast({ title: "Error", description: "Nama kelas tidak boleh kosong.", variant: "destructive" });
       return;
     }
 
     const newClass: ClassLevelData = {
-      id: editingClass?.id || Math.random().toString(36).substr(2, 9),
+      id: editingClass?.id || '',
       name: classNameInput.trim()
     };
 
-    saveClass(newClass);
-    setClasses(getClasses());
-    setIsModalOpen(false);
-    setEditingClass(null);
-    setClassNameInput('');
-    toast({ title: "Berhasil", description: "Kelas telah disimpan." });
+    try {
+      await saveClass(db, newClass);
+      await loadClasses();
+      setIsModalOpen(false);
+      setEditingClass(null);
+      setClassNameInput('');
+      toast({ title: "Berhasil", description: "Kelas telah disimpan." });
+    } catch (error) {
+      toast({ title: "Gagal", description: "Terjadi kesalahan saat menyimpan kelas.", variant: "destructive" });
+    }
   };
 
   return (
@@ -135,7 +160,11 @@ export default function ManageClasses() {
                 <CardTitle className="text-lg">Daftar Jenjang Kelas Aktif</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {classes.length === 0 ? (
+                {loading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : classes.length === 0 ? (
                   <div className="text-center py-10 border-2 border-dashed rounded-xl">
                     <p className="text-muted-foreground">Belum ada jenjang kelas yang ditambahkan.</p>
                   </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -10,15 +9,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { getSubmissions } from '@/lib/storage';
 import { Submission } from '@/lib/types';
-import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings } from 'lucide-react';
+import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useFirestore } from '@/firebase';
 
 export default function TeacherDashboard() {
+  const db = useFirestore();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSubmissions(getSubmissions().reverse());
-  }, []);
+    async function loadData() {
+      if (!db) return;
+      setLoading(true);
+      try {
+        const data = await getSubmissions(db);
+        setSubmissions(data);
+      } catch (error) {
+        console.error("Error loading submissions:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [db]);
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -116,46 +130,52 @@ export default function TeacherDashboard() {
               <CardTitle>Daftar Nilai Siswa</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Siswa</TableHead>
-                    <TableHead>Kelas</TableHead>
-                    <TableHead>Skor</TableHead>
-                    <TableHead>Benar/Total</TableHead>
-                    <TableHead>Waktu Pengerjaan</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {submissions.length === 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
-                        Belum ada data pengerjaan siswa.
-                      </TableCell>
+                      <TableHead>Nama Siswa</TableHead>
+                      <TableHead>Kelas</TableHead>
+                      <TableHead>Skor</TableHead>
+                      <TableHead>Benar/Total</TableHead>
+                      <TableHead>Waktu Pengerjaan</TableHead>
                     </TableRow>
-                  ) : (
-                    submissions.map((s) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-bold">{s.studentName}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{s.classLevel}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`font-bold text-lg ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>
-                            {s.score}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {Math.round((s.score / 100) * s.totalQuestions)} / {s.totalQuestions}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {format(new Date(s.timestamp), 'dd MMM yyyy, HH:mm')}
+                  </TableHeader>
+                  <TableBody>
+                    {submissions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
+                          Belum ada data pengerjaan siswa.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      submissions.map((s) => (
+                        <TableRow key={s.id}>
+                          <TableCell className="font-bold">{s.studentName}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{s.classLevel}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`font-bold text-lg ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                              {s.score}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {Math.round((s.score / 100) * s.totalQuestions)} / {s.totalQuestions}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {s.timestamp ? format(new Date(s.timestamp), 'dd MMM yyyy, HH:mm') : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>

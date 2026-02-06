@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -12,16 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
 import { Question, ClassLevelData, QuestionType } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useFirestore } from '@/firebase';
 
 export default function ManageQuestions() {
+  const db = useFirestore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [classes, setClasses] = useState<ClassLevelData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // Form state
@@ -32,15 +34,27 @@ export default function ManageQuestions() {
   const [qCorrectIndex, setQCorrectIndex] = useState(0);
   const [qCorrectValue, setQCorrectValue] = useState('');
 
-  useEffect(() => {
-    const loadedQuestions = getQuestions();
-    const loadedClasses = getClasses();
-    setQuestions(loadedQuestions);
-    setClasses(loadedClasses);
-    if (loadedClasses.length > 0) {
-      setQClass(loadedClasses[0].name);
+  const loadData = async () => {
+    if (!db) return;
+    setLoading(true);
+    try {
+      const loadedQuestions = await getQuestions(db);
+      const loadedClasses = await getClasses(db);
+      setQuestions(loadedQuestions);
+      setClasses(loadedClasses);
+      if (loadedClasses.length > 0 && !qClass) {
+        setQClass(loadedClasses[0].name);
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [db]);
 
   const resetForm = () => {
     setQText('');
@@ -66,15 +80,21 @@ export default function ManageQuestions() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!db) return;
     if (confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
-      deleteQuestion(id);
-      setQuestions(getQuestions());
-      toast({ title: "Berhasil", description: "Soal telah dihapus." });
+      try {
+        await deleteQuestion(db, id);
+        await loadData();
+        toast({ title: "Berhasil", description: "Soal telah dihapus." });
+      } catch (error) {
+        toast({ title: "Gagal", description: "Terjadi kesalahan saat menghapus soal.", variant: "destructive" });
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!db) return;
     if (!qText || !qClass) {
       toast({ title: "Error", description: "Harap isi pertanyaan dan kelas.", variant: "destructive" });
       return;
@@ -91,7 +111,7 @@ export default function ManageQuestions() {
     }
 
     const newQuestion: Question = {
-      id: editingQuestion?.id || Math.random().toString(36).substr(2, 9),
+      id: editingQuestion?.id || '',
       text: qText,
       type: qType,
       classLevel: qClass,
@@ -99,11 +119,15 @@ export default function ManageQuestions() {
       correctAnswer: qType === 'multiple-choice' ? qCorrectIndex.toString() : qCorrectValue
     };
 
-    saveQuestion(newQuestion);
-    setQuestions(getQuestions());
-    setIsModalOpen(false);
-    resetForm();
-    toast({ title: "Berhasil", description: "Soal telah disimpan." });
+    try {
+      await saveQuestion(db, newQuestion);
+      await loadData();
+      setIsModalOpen(false);
+      resetForm();
+      toast({ title: "Berhasil", description: "Soal telah disimpan." });
+    } catch (error) {
+      toast({ title: "Gagal", description: "Terjadi kesalahan saat menyimpan soal.", variant: "destructive" });
+    }
   };
 
   return (
@@ -245,66 +269,72 @@ export default function ManageQuestions() {
         </header>
 
         <div className="flex-1 overflow-auto p-8">
-          <div className="grid grid-cols-1 gap-8">
-            {classes.map((cls) => {
-              const classQuestions = questions.filter(q => q.classLevel === cls.name);
-              return (
-                <div key={cls.id} className="space-y-4">
-                  <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center gap-2">
-                    {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
-                  </h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {classQuestions.length === 0 ? (
-                      <p className="text-sm italic text-muted-foreground p-4 bg-white rounded-lg border border-dashed">
-                        Belum ada soal untuk {cls.name}.
-                      </p>
-                    ) : (
-                      classQuestions.map((q) => (
-                        <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
-                          <div className="absolute top-0 right-0 p-1">
-                            <Badge variant="secondary" className="text-[10px] uppercase font-bold">
-                              {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
-                            </Badge>
-                          </div>
-                          <CardContent className="p-6">
-                            <div className="flex justify-between items-start gap-4">
-                              <div className="flex-1">
-                                <p className="font-bold">{q.text}</p>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}>
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-8">
+              {classes.map((cls) => {
+                const classQuestions = questions.filter(q => q.classLevel === cls.name);
+                return (
+                  <div key={cls.id} className="space-y-4">
+                    <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center gap-2">
+                      {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
+                    </h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {classQuestions.length === 0 ? (
+                        <p className="text-sm italic text-muted-foreground p-4 bg-white rounded-lg border border-dashed">
+                          Belum ada soal untuk {cls.name}.
+                        </p>
+                      ) : (
+                        classQuestions.map((q) => (
+                          <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-1">
+                              <Badge variant="secondary" className="text-[10px] uppercase font-bold">
+                                {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
+                              </Badge>
                             </div>
-                            
-                            {q.type === 'multiple-choice' ? (
-                              <div className="mt-4 grid grid-cols-2 gap-2">
-                                {q.options?.map((opt, i) => (
-                                  <div key={i} className={`text-xs p-2 rounded border ${i.toString() === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 border-gray-200'}`}>
-                                    {opt}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="mt-4">
-                                <div className="text-xs p-2 rounded border bg-green-50 border-green-200 text-green-700 font-bold inline-block">
-                                  Kunci: {q.correctAnswer}
+                            <CardContent className="p-6">
+                              <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                  <p className="font-bold">{q.text}</p>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                              
+                              {q.type === 'multiple-choice' ? (
+                                <div className="mt-4 grid grid-cols-2 gap-2">
+                                  {q.options?.map((opt, i) => (
+                                    <div key={i} className={`text-xs p-2 rounded border ${i.toString() === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 border-gray-200'}`}>
+                                      {opt}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="mt-4">
+                                  <div className="text-xs p-2 rounded border bg-green-50 border-green-200 text-green-700 font-bold inline-block">
+                                    Kunci: {q.correctAnswer}
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>
