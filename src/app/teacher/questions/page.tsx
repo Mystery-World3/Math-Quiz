@@ -11,27 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
 import { Question, ClassLevelData, QuestionType } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2, Sparkles } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore } from '@/firebase';
-import { generateAIQuestions } from '@/ai/flows/generate-questions-flow';
 
 export default function ManageQuestions() {
   const db = useFirestore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [classes, setClasses] = useState<ClassLevelData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
   const { toast } = useToast();
-
-  // AI Form state
-  const [aiTopic, setAiTopic] = useState('');
-  const [aiCount, setAiCount] = useState(3);
 
   // Form state
   const [qText, setQText] = useState('');
@@ -127,35 +120,6 @@ export default function ManageQuestions() {
     }
   };
 
-  const handleAIGenerate = async () => {
-    if (!aiTopic || !qClass || !db) return;
-    setAiLoading(true);
-    try {
-      const result = await generateAIQuestions({
-        topic: aiTopic,
-        classLevel: qClass,
-        count: aiCount
-      });
-
-      for (const q of result.questions) {
-        await saveQuestion(db, {
-          ...q,
-          id: '',
-          classLevel: qClass
-        } as Question);
-      }
-
-      await loadData();
-      setIsAIModalOpen(false);
-      setAiTopic('');
-      toast({ title: "Berhasil", description: `${result.questions.length} soal AI telah ditambahkan.` });
-    } catch (error) {
-      toast({ title: "Gagal AI", description: "Gagal membuat soal dengan AI.", variant: "destructive" });
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="w-64 bg-white border-r hidden md:flex flex-col">
@@ -192,50 +156,10 @@ export default function ManageQuestions() {
         <header className="h-16 bg-white border-b flex items-center justify-between px-8">
           <h1 className="text-xl font-bold text-primary">Manajemen Soal LKPD</h1>
           <div className="flex gap-2">
-            <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="font-bold gap-2 border-primary text-primary hover:bg-primary/5">
-                  <Sparkles className="h-4 w-4" /> Buat dengan AI
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>AI Question Generator</DialogTitle>
-                  <DialogDescription>Masukkan topik untuk membuat soal secara otomatis.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Topik Pembelajaran</Label>
-                    <Input value={aiTopic} onChange={e => setAiTopic(e.target.value)} placeholder="Misal: Penjumlahan Pecahan, Sel Hewan..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Kelas</Label>
-                      <Select value={qClass} onValueChange={setQClass}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Jumlah Soal</Label>
-                      <Input type="number" value={aiCount} onChange={e => setAiCount(parseInt(e.target.value))} min={1} max={10} />
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAIModalOpen(false)}>Batal</Button>
-                  <Button onClick={handleAIGenerate} disabled={aiLoading || !aiTopic}>
-                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                    Generate Soal
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
             <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button className="font-bold gap-2">
-                  <Plus className="h-4 w-4" /> Tambah Manual
+                  <Plus className="h-4 w-4" /> Tambah Soal
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -248,16 +172,18 @@ export default function ManageQuestions() {
                       <Label>Jenjang Kelas</Label>
                       <Select value={qClass} onValueChange={setQClass}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                        <SelectContent>
+                          {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Tipe Soal</Label>
                       <Tabs value={qType} onValueChange={(val) => setQType(val as QuestionType)} className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
-                          <TabsTrigger value="multiple-choice"><ListTodo className="h-3 w-3" /></TabsTrigger>
-                          <TabsTrigger value="numeric"><Hash className="h-3 w-3" /></TabsTrigger>
-                          <TabsTrigger value="short-answer"><Type className="h-3 w-3" /></TabsTrigger>
+                          <TabsTrigger value="multiple-choice" title="Pilihan Ganda"><ListTodo className="h-3 w-3" /></TabsTrigger>
+                          <TabsTrigger value="numeric" title="Isian Angka"><Hash className="h-3 w-3" /></TabsTrigger>
+                          <TabsTrigger value="short-answer" title="Isian Singkat"><Type className="h-3 w-3" /></TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
@@ -280,7 +206,7 @@ export default function ManageQuestions() {
                   ) : (
                     <div className="space-y-2">
                       <Label>Jawaban Benar</Label>
-                      <Input type={qType === 'numeric' ? 'number' : 'text'} value={qCorrectValue} onChange={e => setQCorrectValue(e.target.value)} />
+                      <Input type={qType === 'numeric' ? 'number' : 'text'} value={qCorrectValue} onChange={e => setQCorrectValue(e.target.value)} placeholder="Ketik jawaban yang benar..." />
                     </div>
                   )}
                 </div>
@@ -298,34 +224,49 @@ export default function ManageQuestions() {
             <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
             <div className="grid grid-cols-1 gap-8">
-              {classes.map((cls) => {
-                const classQuestions = questions.filter(q => q.classLevel === cls.name);
-                return (
-                  <div key={cls.id} className="space-y-4">
-                    <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center gap-2">
-                      {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
-                    </h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {classQuestions.map((q) => (
-                        <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
-                          <CardContent className="p-6">
-                            <div className="flex justify-between items-start gap-4">
-                              <div className="flex-1"><p className="font-bold">{q.text}</p></div>
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}><Edit2 className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4" /></Button>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="mt-2 text-[10px] uppercase font-bold">
-                              {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
-                            </Badge>
-                          </CardContent>
-                        </Card>
-                      ))}
+              {classes.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-xl border-2 border-dashed">
+                  <p className="text-muted-foreground italic">Belum ada kelas. Silakan buat kelas terlebih dahulu di menu Kelola Kelas.</p>
+                </div>
+              ) : (
+                classes.map((cls) => {
+                  const classQuestions = questions.filter(q => q.classLevel === cls.name);
+                  return (
+                    <div key={cls.id} className="space-y-4">
+                      <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center gap-2">
+                        {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
+                      </h2>
+                      {classQuestions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic px-2">Belum ada soal untuk kelas ini.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {classQuestions.map((q) => (
+                            <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden group">
+                              <CardContent className="p-6">
+                                <div className="flex justify-between items-start gap-4">
+                                  <div className="flex-1"><p className="font-bold leading-relaxed">{q.text}</p></div>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}><Edit2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4" /></Button>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 mt-3">
+                                  <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight">
+                                    {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-[10px] border-green-200 bg-green-50 text-green-700">
+                                    Ans: {q.type === 'multiple-choice' ? (q.options ? q.options[parseInt(q.correctAnswer)] : '-') : q.correctAnswer}
+                                  </Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           )}
         </div>
