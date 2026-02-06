@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
@@ -11,12 +10,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, Sigma, ListTodo } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, ListTodo } from 'lucide-react';
 import { getQuestions, saveSubmission } from '@/lib/storage';
 import { Question } from '@/lib/types';
 import { useFirestore } from '@/firebase';
-
-const MATH_SYMBOLS = ['+', '-', '×', '÷', '=', '±', '√', 'π', 'θ', '°', '²', '³', '<', '>'];
+import { SymbolKeyboard } from '@/components/SymbolKeyboard';
 
 function ExamContent() {
   const router = useRouter();
@@ -93,7 +91,6 @@ function ExamContent() {
       timestamp: new Date().toISOString()
     };
 
-    // Firebase akan membuatkan ID dokumen otomatis
     saveSubmission(db, submissionData);
 
     localStorage.setItem('last_submission', JSON.stringify({
@@ -184,38 +181,20 @@ function ExamContent() {
                 ))}
               </RadioGroup>
             ) : (
-              <div className="space-y-4 pt-4">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="text-answer" className="text-lg font-bold">Masukkan Jawaban:</Label>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Sigma className="h-3 w-3" /> Panel Simbol
-                  </div>
-                </div>
+              <div className="space-y-6 pt-4">
+                <SymbolKeyboard onInsert={insertSymbol} />
 
-                <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
-                  {MATH_SYMBOLS.map(symbol => (
-                    <Button
-                      key={symbol}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-10 w-10 font-bold text-lg"
-                      onClick={() => insertSymbol(symbol)}
-                    >
-                      {symbol}
-                    </Button>
-                  ))}
+                <div className="space-y-2">
+                  <Label htmlFor="text-answer" className="text-lg font-bold">Jawaban Kamu:</Label>
+                  <Input 
+                    id="text-answer"
+                    placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban..."}
+                    className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary shadow-inner"
+                    value={answers[currentIdx]}
+                    onChange={(e) => handleAnswerChange(e.target.value)}
+                    autoFocus
+                  />
                 </div>
-
-                <Input 
-                  id="text-answer"
-                  type={currentQuestion.type === 'numeric' ? 'text' : 'text'}
-                  placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban/simbol..."}
-                  className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary"
-                  value={answers[currentIdx]}
-                  onChange={(e) => handleAnswerChange(e.target.value)}
-                  autoFocus
-                />
               </div>
             )}
           </CardContent>

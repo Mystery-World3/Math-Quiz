@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore } from '@/firebase';
+import { SymbolKeyboard } from '@/components/SymbolKeyboard';
 
 export default function ManageQuestions() {
   const db = useFirestore();
@@ -122,6 +123,14 @@ export default function ManageQuestions() {
     }
   };
 
+  const insertSymbolToText = (symbol: string) => setQText(prev => prev + symbol);
+  const insertSymbolToAnswer = (symbol: string) => setQCorrectValue(prev => prev + symbol);
+  const insertSymbolToOption = (symbol: string, idx: number) => {
+    const n = [...qOptions];
+    n[idx] = n[idx] + symbol;
+    setQOptions(n);
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
       <aside className="w-64 bg-white border-r hidden md:flex flex-col">
@@ -169,11 +178,11 @@ export default function ManageQuestions() {
                   <Plus className="h-4 w-4" /> Tambah Soal
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingQuestion ? 'Edit Soal' : 'Tambah Soal Baru'}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-6 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Jenjang Kelas</Label>
@@ -195,36 +204,65 @@ export default function ManageQuestions() {
                       </Tabs>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Pertanyaan</Label>
-                    <Input value={qText} onChange={e => setQText(e.target.value)} placeholder="Tuliskan pertanyaan..." />
+
+                  <div className="space-y-4">
+                    <Label className="text-lg font-bold">Isi Pertanyaan</Label>
+                    <SymbolKeyboard onInsert={insertSymbolToText} label="Simbol untuk Pertanyaan" />
+                    <Input 
+                      value={qText} 
+                      onChange={e => setQText(e.target.value)} 
+                      placeholder="Contoh: Jika x₁ = 4 dan x₂ = 6, maka..." 
+                      className="text-lg font-medium p-6"
+                    />
                   </div>
+
                   {qType === 'multiple-choice' ? (
-                    <div className="space-y-3">
-                      {qOptions.map((opt, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Button variant={qCorrectIndex === idx ? 'default' : 'outline'} size="icon" onClick={() => setQCorrectIndex(idx)}>
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                          <Input value={opt} onChange={e => { const n = [...qOptions]; n[idx] = e.target.value; setQOptions(n); }} placeholder={`Opsi ${idx + 1}`} />
-                        </div>
-                      ))}
+                    <div className="space-y-6 bg-muted/20 p-4 rounded-xl border">
+                      <Label className="font-bold">Opsi Jawaban (Klik lingkaran untuk jawaban benar)</Label>
+                      <div className="space-y-4">
+                        {qOptions.map((opt, idx) => (
+                          <div key={idx} className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant={qCorrectIndex === idx ? 'default' : 'outline'} 
+                                size="icon" 
+                                className="shrink-0"
+                                onClick={() => setQCorrectIndex(idx)}
+                              >
+                                <CheckCircle2 className="h-5 w-5" />
+                              </Button>
+                              <Input 
+                                value={opt} 
+                                onChange={e => { const n = [...qOptions]; n[idx] = e.target.value; setQOptions(n); }} 
+                                placeholder={`Opsi ${idx + 1}`} 
+                                className="font-medium"
+                              />
+                            </div>
+                            <div className="flex flex-wrap gap-1 pl-12">
+                               {['x₁', 'x₂', '²', '³', '√', 'π'].map(s => (
+                                 <Button key={s} variant="ghost" size="sm" className="h-7 text-xs" onClick={() => insertSymbolToOption(s, idx)}>{s}</Button>
+                               ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <Label>Jawaban Benar</Label>
+                    <div className="space-y-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                      <Label className="text-lg font-bold text-primary">Kunci Jawaban Benar</Label>
+                      <SymbolKeyboard onInsert={insertSymbolToAnswer} label="Simbol untuk Jawaban" />
                       <Input 
-                        type={qType === 'numeric' ? 'text' : 'text'} 
                         value={qCorrectValue} 
                         onChange={e => setQCorrectValue(e.target.value)} 
-                        placeholder={qType === 'numeric' ? "Masukkan angka..." : "Masukkan jawaban/simbol..."} 
+                        placeholder="Masukkan nilai atau simbol yang tepat..." 
+                        className="text-xl font-bold text-center h-14 border-2 border-primary/30"
                       />
                     </div>
                   )}
                 </div>
-                <DialogFooter>
+                <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
                   <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                  <Button onClick={handleSave}>Simpan Soal</Button>
+                  <Button onClick={handleSave} className="px-8 font-bold">Simpan Soal</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
