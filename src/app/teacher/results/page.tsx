@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -9,52 +9,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getSubmissions, deleteSubmission, updateSubmission } from '@/lib/storage';
+import { deleteSubmission, updateSubmission } from '@/lib/storage';
 import { Submission } from '@/lib/types';
 import { LayoutDashboard, FileText, LogOut, Settings, Users, Trash2, Edit2, Loader2, Download, Search } from 'lucide-react';
 import { format } from 'date-fns';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { collection, query, orderBy } from 'firebase/firestore';
 
 export default function TeacherResults() {
   const db = useFirestore();
   const { toast } = useToast();
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Real-time collection
+  const submissionsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
+  }, [db]);
+
+  const { data: submissions, loading } = useCollection<Submission>(submissionsQuery);
+
   // Edit state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingResult, setEditingResult] = useState<Submission | null>(null);
   const [editName, setEditName] = useState('');
   const [editScore, setEditScore] = useState(0);
 
-  const loadData = async () => {
-    if (!db) return;
-    setLoading(true);
-    try {
-      const data = await getSubmissions(db);
-      setSubmissions(data);
-    } catch (error) {
-      console.error("Error loading submissions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [db]);
-
   const handleDelete = async (id: string) => {
-    if (!db) return;
-    if (confirm('Apakah Anda yakin ingin menghapus data pengerjaan ini? Data ini akan hilang dari laporan dan dashboard.')) {
+    if (!db || !id) return;
+    if (confirm('Apakah Anda yakin ingin menghapus data pengerjaan ini? Data ini akan hilang dari laporan dan dashboard secara otomatis.')) {
       try {
         await deleteSubmission(db, id);
-        await loadData();
         toast({ title: "Berhasil", description: "Data pengerjaan siswa telah dihapus." });
       } catch (error) {
+        console.error("Delete error:", error);
         toast({ title: "Gagal", description: "Terjadi kesalahan saat menghapus data.", variant: "destructive" });
       }
     }
@@ -74,7 +64,6 @@ export default function TeacherResults() {
         studentName: editName,
         score: editScore
       });
-      await loadData();
       setIsEditModalOpen(false);
       toast({ title: "Berhasil", description: "Data pengerjaan siswa telah diperbarui." });
     } catch (error) {
@@ -82,10 +71,13 @@ export default function TeacherResults() {
     }
   };
 
-  const filteredSubmissions = submissions.filter(s => 
-    s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.classLevel.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSubmissions = useMemo(() => {
+    if (!submissions) return [];
+    return submissions.filter(s => 
+      s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.classLevel.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [submissions, searchTerm]);
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -134,7 +126,7 @@ export default function TeacherResults() {
 
         <div className="flex-1 overflow-auto p-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
               <CardTitle className="text-lg">Database Hasil Ujian</CardTitle>
               <div className="relative w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -164,7 +156,7 @@ export default function TeacherResults() {
                   </TableHeader>
                   <TableBody>
                     {filteredSubmissions.map((s) => (
-                      <TableRow key={s.id}>
+                      <TableRow key={s.id} className="animate-in fade-in duration-300">
                         <TableCell className="text-xs text-muted-foreground">
                           {s.timestamp ? format(new Date(s.timestamp), 'dd MMM yyyy, HH:mm') : '-'}
                         </TableCell>
@@ -214,7 +206,7 @@ export default function TeacherResults() {
             </div>
             <div className="space-y-2">
               <Label>Skor Akhir (0-100)</Label>
-              <Input type="number" min="0" max="100" value={editScore} onChange={(e) => setEditScore(parseInt(e.target.value))} />
+              <Input type="number" min="0" max="100" value={editScore} onChange={(e) => setEditScore(parseInt(e.target.value) || 0)} />
             </div>
           </div>
           <DialogFooter>

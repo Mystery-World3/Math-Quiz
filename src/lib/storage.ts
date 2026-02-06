@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { Question, Submission, ClassLevelData } from './types';
 
+// Management for Classes
 export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
   const colRef = collection(db, 'classes');
   const snapshot = await getDocs(colRef);
@@ -34,6 +35,7 @@ export async function deleteClass(db: Firestore, id: string) {
   await deleteDoc(doc(db, 'classes', id));
 }
 
+// Management for Questions
 export async function getQuestions(db: Firestore, classLevel?: string): Promise<Question[]> {
   const colRef = collection(db, 'questions');
   let q = query(colRef);
@@ -50,6 +52,7 @@ export async function saveQuestion(db: Firestore, question: Question) {
   const colRef = collection(db, 'questions');
   const { id, ...data } = question;
   
+  // Remove undefined to prevent Firestore error
   const cleanData = Object.fromEntries(
     Object.entries(data).filter(([_, v]) => v !== undefined)
   );
@@ -65,6 +68,7 @@ export async function deleteQuestion(db: Firestore, id: string) {
   await deleteDoc(doc(db, 'questions', id));
 }
 
+// Management for Submissions (Real-time compatible)
 export async function getSubmissions(db: Firestore): Promise<Submission[]> {
   const colRef = collection(db, 'submissions');
   const q = query(colRef, orderBy('timestamp', 'desc'));
@@ -75,16 +79,20 @@ export async function getSubmissions(db: Firestore): Promise<Submission[]> {
 export async function saveSubmission(db: Firestore, submission: Submission) {
   const colRef = collection(db, 'submissions');
   const { id, ...data } = submission;
+  // Ensure we don't save the client-side ID to Firestore doc fields
   await addDoc(colRef, data);
 }
 
 export async function updateSubmission(db: Firestore, id: string, data: Partial<Submission>) {
+  if (!id) return;
   const docRef = doc(db, 'submissions', id);
+  // Ensure we don't try to update the ID field
   const { id: _, ...cleanData } = data as any;
   await updateDoc(docRef, cleanData);
 }
 
 export async function deleteSubmission(db: Firestore, id: string) {
+  if (!id) return;
   const docRef = doc(db, 'submissions', id);
   await deleteDoc(docRef);
 }

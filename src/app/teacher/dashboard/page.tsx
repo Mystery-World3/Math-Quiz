@@ -1,40 +1,29 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { getSubmissions } from '@/lib/storage';
 import { Submission } from '@/lib/types';
 import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings, Loader2, BarChart3 } from 'lucide-react';
-import { format } from 'date-fns';
-import { useFirestore } from '@/firebase';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from "recharts";
+import { useFirestore, useCollection } from '@/firebase';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { collection, query, orderBy } from 'firebase/firestore';
 
 export default function TeacherDashboard() {
   const db = useFirestore();
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadData() {
-      if (!db) return;
-      setLoading(true);
-      try {
-        const data = await getSubmissions(db);
-        setSubmissions(data);
-      } catch (error) {
-        console.error("Error loading submissions:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
+  
+  // Real-time collection for automatic updates
+  const submissionsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
   }, [db]);
+
+  const { data: submissions = [], loading } = useCollection<Submission>(submissionsQuery);
 
   const chartData = useMemo(() => {
     const ranges = [
@@ -44,14 +33,22 @@ export default function TeacherDashboard() {
       { name: '86-100', count: 0, color: '#10b981' },
     ];
     
-    submissions.forEach(s => {
-      if (s.score <= 50) ranges[0].count++;
-      else if (s.score <= 70) ranges[1].count++;
-      else if (s.score <= 85) ranges[2].count++;
-      else ranges[3].count++;
-    });
+    if (submissions) {
+      submissions.forEach(s => {
+        if (s.score <= 50) ranges[0].count++;
+        else if (s.score <= 70) ranges[1].count++;
+        else if (s.score <= 85) ranges[2].count++;
+        else ranges[3].count++;
+      });
+    }
     
     return ranges;
+  }, [submissions]);
+
+  const averageScore = useMemo(() => {
+    if (!submissions || submissions.length === 0) return 0;
+    const total = submissions.reduce((acc, s) => acc + s.score, 0);
+    return Math.round(total / submissions.length);
   }, [submissions]);
 
   return (
@@ -93,16 +90,22 @@ export default function TeacherDashboard() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8">
-          <h1 className="text-xl font-bold text-primary">Overview Nilai Siswa</h1>
+          <h1 className="text-xl font-bold text-primary">Overview Nilai Siswa (Real-time)</h1>
         </header>
 
         <div className="flex-1 overflow-auto p-8 space-y-8">
+          {loading && (
+            <div className="flex items-center gap-2 text-primary font-medium">
+              <Loader2 className="h-4 w-4 animate-spin" /> Memperbarui data...
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="bg-primary text-primary-foreground">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-80">Total Peserta</p>
-                  <p className="text-4xl font-bold">{submissions.length}</p>
+                  <p className="text-4xl font-bold">{submissions?.length || 0}</p>
                 </div>
                 <Users className="h-10 w-10 opacity-30" />
               </CardContent>
@@ -112,9 +115,7 @@ export default function TeacherDashboard() {
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Rata-rata Skor</p>
-                  <p className="text-4xl font-bold text-primary">
-                    {submissions.length > 0 ? Math.round(submissions.reduce((acc, s) => acc + s.score, 0) / submissions.length) : 0}
-                  </p>
+                  <p className="text-4xl font-bold text-primary">{averageScore}</p>
                 </div>
                 <BarChart3 className="h-10 w-10 text-accent opacity-50" />
               </CardContent>
@@ -124,7 +125,7 @@ export default function TeacherDashboard() {
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Peserta Terakhir</p>
-                  <p className="text-lg font-bold truncate max-w-[150px]">{submissions[0]?.studentName || '-'}</p>
+                  <p className="text-lg font-bold truncate max-w-[150px]">{submissions && submissions[0]?.studentName || '-'}</p>
                 </div>
                 <ChevronRight className="h-8 w-8 text-muted-foreground" />
               </CardContent>
@@ -158,7 +159,7 @@ export default function TeacherDashboard() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Daftar Nilai Terbaru</CardTitle>
                 <Link href="/teacher/results">
-                  <Button variant="link" size="sm">Lihat Semua</Button>
+                  <Button variant="link" size="sm">Kelola Semua</Button>
                 </Link>
               </CardHeader>
               <CardContent>
@@ -171,14 +172,14 @@ export default function TeacherDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {submissions.slice(0, 5).map((s) => (
+                    {submissions && submissions.slice(0, 5).map((s) => (
                       <TableRow key={s.id}>
                         <TableCell className="font-bold">{s.studentName}</TableCell>
                         <TableCell><Badge variant="outline">{s.classLevel}</Badge></TableCell>
                         <TableCell className={`font-bold ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>{s.score}</TableCell>
                       </TableRow>
                     ))}
-                    {submissions.length === 0 && (
+                    {(!submissions || submissions.length === 0) && !loading && (
                       <TableRow><TableCell colSpan={3} className="text-center py-4 italic text-muted-foreground">Belum ada data</TableCell></TableRow>
                     )}
                   </TableBody>
