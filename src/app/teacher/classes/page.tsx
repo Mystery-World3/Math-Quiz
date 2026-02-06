@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { getClasses, saveClass, deleteClass } from '@/lib/storage';
 import { ClassLevelData } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, Settings, Loader2 } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, Settings, Loader2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useFirestore } from '@/firebase';
@@ -104,6 +104,11 @@ export default function ManageClasses() {
           <Link href="/teacher/classes">
             <Button variant="secondary" className="w-full justify-start font-bold">
               <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
+            </Button>
+          </Link>
+          <Link href="/teacher/results">
+            <Button variant="ghost" className="w-full justify-start">
+              <Users className="mr-2 h-4 w-4" /> Kelola Nilai
             </Button>
           </Link>
         </nav>

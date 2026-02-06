@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -51,7 +50,6 @@ export async function saveQuestion(db: Firestore, question: Question) {
   const colRef = collection(db, 'questions');
   const { id, ...data } = question;
   
-  // Bersihkan nilai undefined agar tidak menyebabkan error di Firestore
   const cleanData = Object.fromEntries(
     Object.entries(data).filter(([_, v]) => v !== undefined)
   );
@@ -78,4 +76,15 @@ export async function saveSubmission(db: Firestore, submission: Submission) {
   const colRef = collection(db, 'submissions');
   const { id, ...data } = submission;
   await addDoc(colRef, data);
+}
+
+export async function updateSubmission(db: Firestore, id: string, data: Partial<Submission>) {
+  const docRef = doc(db, 'submissions', id);
+  const { id: _, ...cleanData } = data as any;
+  await updateDoc(docRef, cleanData);
+}
+
+export async function deleteSubmission(db: Firestore, id: string) {
+  const docRef = doc(db, 'submissions', id);
+  await deleteDoc(docRef);
 }

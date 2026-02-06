@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
 import { Question, ClassLevelData, QuestionType } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2 } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -143,6 +142,11 @@ export default function ManageQuestions() {
           <Link href="/teacher/classes">
             <Button variant="ghost" className="w-full justify-start">
               <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
+            </Button>
+          </Link>
+          <Link href="/teacher/results">
+            <Button variant="ghost" className="w-full justify-start">
+              <Users className="mr-2 h-4 w-4" /> Kelola Nilai
             </Button>
           </Link>
         </nav>

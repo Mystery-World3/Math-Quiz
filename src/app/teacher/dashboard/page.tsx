@@ -76,6 +76,11 @@ export default function TeacherDashboard() {
               <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
             </Button>
           </Link>
+          <Link href="/teacher/results">
+            <Button variant="ghost" className="w-full justify-start">
+              <Users className="mr-2 h-4 w-4" /> Kelola Nilai
+            </Button>
+          </Link>
         </nav>
         <div className="p-4 border-t">
           <Link href="/">
@@ -128,7 +133,9 @@ export default function TeacherDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle className="text-lg">Distribusi Nilai</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Distribusi Nilai</CardTitle>
+              </CardHeader>
               <CardContent className="h-[300px]">
                 <ChartContainer config={{ count: { label: "Jumlah Siswa", color: "hsl(var(--primary))" } }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -148,7 +155,12 @@ export default function TeacherDashboard() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-lg">Daftar Nilai Terbaru</CardTitle></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Daftar Nilai Terbaru</CardTitle>
+                <Link href="/teacher/results">
+                  <Button variant="link" size="sm">Lihat Semua</Button>
+                </Link>
+              </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
