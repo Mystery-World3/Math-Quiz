@@ -38,16 +38,24 @@ export default function TeacherResults() {
 
   const handleDelete = (id: string, studentName: string) => {
     if (!db || !id) {
-      toast({ title: "Error", description: "ID data tidak valid.", variant: "destructive" });
+      toast({ title: "Error", description: "Data tidak valid untuk dihapus.", variant: "destructive" });
       return;
     }
     
-    if (confirm(`Apakah Anda yakin ingin menghapus hasil dari "${studentName}"?`)) {
-      deleteSubmission(db, id);
-      toast({ 
-        title: "Menghapus...", 
-        description: `Data "${studentName}" sedang diproses untuk dihapus.`,
-      });
+    if (confirm(`Hapus data pengerjaan "${studentName}"? Tindakan ini permanen.`)) {
+      try {
+        deleteSubmission(db, id);
+        toast({ 
+          title: "Berhasil", 
+          description: `Data "${studentName}" telah dikirim untuk dihapus.`,
+        });
+      } catch (e) {
+        toast({ 
+          title: "Gagal", 
+          description: "Terjadi kesalahan saat menghapus data.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -65,7 +73,7 @@ export default function TeacherResults() {
       score: editScore
     });
     setIsEditModalOpen(false);
-    toast({ title: "Memproses...", description: "Perubahan sedang disimpan." });
+    toast({ title: "Berhasil", description: "Perubahan telah disimpan." });
   };
 
   const filteredSubmissions = useMemo(() => {

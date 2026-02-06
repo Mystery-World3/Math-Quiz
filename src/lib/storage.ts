@@ -20,26 +20,27 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
   const colRef = collection(db, 'classes');
   const snapshot = await getDocs(colRef);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClassLevelData));
+  return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as ClassLevelData));
 }
 
 export function saveClass(db: Firestore, classData: ClassLevelData) {
-  if (classData.id && classData.id.length > 5) {
-    const docRef = doc(db, 'classes', classData.id);
-    updateDoc(docRef, { name: classData.name }).catch(async () => {
+  const { id, name } = classData;
+  if (id && id.length > 5) {
+    const docRef = doc(db, 'classes', id);
+    updateDoc(docRef, { name }).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: docRef.path,
         operation: 'update',
-        requestResourceData: { name: classData.name }
+        requestResourceData: { name }
       }));
     });
   } else {
     const colRef = collection(db, 'classes');
-    addDoc(colRef, { name: classData.name }).catch(async () => {
+    addDoc(colRef, { name }).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: colRef.path,
         operation: 'create',
-        requestResourceData: { name: classData.name }
+        requestResourceData: { name }
       }));
     });
   }
@@ -66,7 +67,7 @@ export async function getQuestions(db: Firestore, classLevel?: string): Promise<
   }
   
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+  return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Question));
 }
 
 export function saveQuestion(db: Firestore, question: Question) {
@@ -133,9 +134,9 @@ export function updateSubmission(db: Firestore, id: string, data: Partial<Submis
 }
 
 export function deleteSubmission(db: Firestore, id: string) {
-  if (!id || typeof id !== 'string') return;
+  if (!id) return;
   const docRef = doc(db, 'submissions', id);
-  deleteDoc(docRef).catch(async (serverError) => {
+  deleteDoc(docRef).catch(async () => {
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete'

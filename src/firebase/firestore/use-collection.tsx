@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -22,15 +23,17 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
-        const items = snapshot.docs.map((doc) => ({
-          ...doc.data(),
-          id: doc.id,
-        }));
+        const items = snapshot.docs.map((doc) => {
+          const docData = doc.data() as any;
+          return {
+            ...docData,
+            id: doc.id, // ID dari Firestore harus menimpa ID di dalam data
+          } as T;
+        });
         setData(items);
         setLoading(false);
       },
       (err) => {
-        console.error(err);
         setError(err);
         setLoading(false);
       }
