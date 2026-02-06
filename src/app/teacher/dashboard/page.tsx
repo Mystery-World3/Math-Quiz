@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Submission } from '@/lib/types';
 import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings, Loader2, BarChart3 } from 'lucide-react';
