@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { Question, Submission, ClassLevelData } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // Management for Classes
 export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
@@ -30,7 +30,7 @@ export function saveClass(db: Firestore, classData: ClassLevelData) {
     updateDoc(docRef, { name }).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: docRef.path,
-        operation: 'update',
+        operation: 'write',
         requestResourceData: { name }
       }));
     });
@@ -39,7 +39,7 @@ export function saveClass(db: Firestore, classData: ClassLevelData) {
     addDoc(colRef, { name }).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: colRef.path,
-        operation: 'create',
+        operation: 'write',
         requestResourceData: { name }
       }));
     });
@@ -81,7 +81,7 @@ export function saveQuestion(db: Firestore, question: Question) {
     updateDoc(docRef, cleanData).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: docRef.path,
-        operation: 'update',
+        operation: 'write',
         requestResourceData: cleanData
       }));
     });
@@ -90,7 +90,7 @@ export function saveQuestion(db: Firestore, question: Question) {
     addDoc(colRef, cleanData).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: colRef.path,
-        operation: 'create',
+        operation: 'write',
         requestResourceData: cleanData
       }));
     });
@@ -114,7 +114,7 @@ export function saveSubmission(db: Firestore, submission: Omit<Submission, 'id'>
   addDoc(colRef, submission).catch(async () => {
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: colRef.path,
-      operation: 'create',
+      operation: 'write',
       requestResourceData: submission
     }));
   });
@@ -127,16 +127,20 @@ export function updateSubmission(db: Firestore, id: string, data: Partial<Submis
   updateDoc(docRef, cleanData).catch(async () => {
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: docRef.path,
-      operation: 'update',
+      operation: 'write',
       requestResourceData: cleanData
     }));
   });
 }
 
 export function deleteSubmission(db: Firestore, id: string) {
-  if (!id) return;
+  if (!id) {
+    console.error("Delete failed: No ID provided");
+    return;
+  }
   const docRef = doc(db, 'submissions', id);
-  deleteDoc(docRef).catch(async () => {
+  deleteDoc(docRef).catch(async (error) => {
+    console.error("Firestore Delete Error:", error);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete'

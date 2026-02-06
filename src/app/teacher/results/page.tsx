@@ -29,7 +29,7 @@ export default function TeacherResults() {
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
   }, [db]);
 
-  const { data: submissions, loading } = useCollection<Submission>(submissionsQuery);
+  const { data: submissions = [], loading } = useCollection<Submission>(submissionsQuery);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingResult, setEditingResult] = useState<Submission | null>(null);
@@ -37,22 +37,24 @@ export default function TeacherResults() {
   const [editScore, setEditScore] = useState(0);
 
   const handleDelete = (id: string, studentName: string) => {
-    if (!db || !id) {
-      toast({ title: "Error", description: "Data tidak valid untuk dihapus.", variant: "destructive" });
+    if (!db) return;
+    
+    if (!id) {
+      toast({ title: "Error", description: "ID data tidak ditemukan.", variant: "destructive" });
       return;
     }
     
-    if (confirm(`Hapus data pengerjaan "${studentName}"? Tindakan ini permanen.`)) {
+    if (confirm(`Apakah Anda yakin ingin menghapus data pengerjaan "${studentName}"? Tindakan ini tidak dapat dibatalkan.`)) {
       try {
         deleteSubmission(db, id);
         toast({ 
-          title: "Berhasil", 
-          description: `Data "${studentName}" telah dikirim untuk dihapus.`,
+          title: "Proses Menghapus", 
+          description: `Data "${studentName}" sedang dihapus...`,
         });
       } catch (e) {
         toast({ 
           title: "Gagal", 
-          description: "Terjadi kesalahan saat menghapus data.",
+          description: "Gagal mengirim perintah hapus.",
           variant: "destructive"
         });
       }
@@ -77,7 +79,6 @@ export default function TeacherResults() {
   };
 
   const filteredSubmissions = useMemo(() => {
-    if (!submissions) return [];
     return submissions.filter(s => 
       s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.classLevel.toLowerCase().includes(searchTerm.toLowerCase())
