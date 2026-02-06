@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -12,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { deleteSubmission, updateSubmission } from '@/lib/storage';
 import { Submission } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Settings, Users, Trash2, Edit2, Loader2, Download, Search } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Settings, Users, Trash2, Edit2, Loader2, Printer, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useFirestore, useCollection } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -42,8 +41,8 @@ export default function TeacherResults() {
     if (confirm(`Apakah Anda yakin ingin menghapus data pengerjaan "${studentName}"?`)) {
       deleteSubmission(db, id);
       toast({ 
-        title: "Dihapus", 
-        description: `Data "${studentName}" telah dikirim untuk dihapus.`,
+        title: "Menghapus...", 
+        description: `Permintaan hapus data "${studentName}" sedang diproses.`,
       });
     }
   };
@@ -73,9 +72,13 @@ export default function TeacherResults() {
     );
   }, [submissions, searchTerm]);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+      <aside className="w-64 bg-white border-r hidden md:flex flex-col no-print">
         <div className="p-6">
           <Logo />
         </div>
@@ -111,18 +114,23 @@ export default function TeacherResults() {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-8">
+        <header className="h-16 bg-white border-b flex items-center justify-between px-8 no-print">
           <h1 className="text-xl font-bold text-primary">Manajemen Nilai Siswa</h1>
-          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-            <Download className="h-4 w-4" /> Cetak Laporan
+          <Button variant="outline" className="gap-2" onClick={handlePrint}>
+            <Printer className="h-4 w-4" /> Cetak Laporan
           </Button>
         </header>
 
-        <div className="flex-1 overflow-auto p-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+        <div className="flex-1 overflow-auto p-4 md:p-8">
+          <div className="hidden print-only mb-8">
+            <h1 className="text-2xl font-bold text-center">LAPORAN HASIL UJIAN SISWA</h1>
+            <p className="text-center text-muted-foreground">Dicetak pada: {format(new Date(), 'dd MMMM yyyy, HH:mm')}</p>
+          </div>
+
+          <Card className="card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7 no-print">
               <CardTitle className="text-lg">Database Hasil Ujian</CardTitle>
-              <div className="relative w-72">
+              <div className="relative w-full max-w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder="Cari nama atau kelas..." 
@@ -134,25 +142,25 @@ export default function TeacherResults() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center py-20">
+                <div className="flex items-center justify-center py-20 no-print">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Waktu Pengerjaan</TableHead>
+                      <TableHead>Waktu</TableHead>
                       <TableHead>Nama Siswa</TableHead>
                       <TableHead>Kelas</TableHead>
                       <TableHead>Skor</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
+                      <TableHead className="text-right no-print">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredSubmissions.map((s) => (
                       <TableRow key={s.id} className="animate-in fade-in duration-300">
                         <TableCell className="text-xs text-muted-foreground">
-                          {s.timestamp ? format(new Date(s.timestamp), 'dd MMM yyyy, HH:mm') : '-'}
+                          {s.timestamp ? format(new Date(s.timestamp), 'dd/MM/yy, HH:mm') : '-'}
                         </TableCell>
                         <TableCell className="font-bold">{s.studentName}</TableCell>
                         <TableCell><Badge variant="outline">{s.classLevel}</Badge></TableCell>
@@ -161,12 +169,12 @@ export default function TeacherResults() {
                             {s.score}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right no-print">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="icon" className="text-blue-500" onClick={() => handleEdit(s)}>
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(s.id, s.studentName)}>
+                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(s.id || '', s.studentName)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
