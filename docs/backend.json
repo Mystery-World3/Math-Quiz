@@ -1,0 +1,91 @@
+
+{
+  "entities": {
+    "Class": {
+      "title": "Class",
+      "description": "Educational class levels",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the class level"
+        }
+      },
+      "required": ["name"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "A question for the digital worksheet",
+      "type": "object",
+      "properties": {
+        "classLevel": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["multiple-choice", "numeric", "short-answer"]
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "correctAnswer": {
+          "type": "string"
+        }
+      },
+      "required": ["classLevel", "text", "type", "correctAnswer"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "A student's worksheet submission",
+      "type": "object",
+      "properties": {
+        "studentName": {
+          "type": "string"
+        },
+        "classLevel": {
+          "type": "string"
+        },
+        "score": {
+          "type": "number"
+        },
+        "totalQuestions": {
+          "type": "number"
+        },
+        "answers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["studentName", "classLevel", "score", "totalQuestions", "answers", "timestamp"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Collection of available class levels"
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Collection of learning questions"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Collection of student exam results"
+    }
+  }
+}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -13,19 +12,34 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { GraduationCap, ArrowRight } from 'lucide-react';
+import { GraduationCap, ArrowRight, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { getClasses } from '@/lib/storage';
 import { ClassLevelData } from '@/lib/types';
+import { useFirestore } from '@/firebase';
 
 export default function LandingPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [classes, setClasses] = useState<ClassLevelData[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const db = useFirestore();
 
   useEffect(() => {
-    setClasses(getClasses());
-  }, []);
+    async function loadClasses() {
+      if (db) {
+        try {
+          const data = await getClasses(db);
+          setClasses(data);
+        } catch (error) {
+          console.error("Error loading classes:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    loadClasses();
+  }, [db]);
 
   const handleStart = () => {
     if (selectedClass) {
@@ -60,20 +74,30 @@ export default function LandingPage() {
             </div>
             
             <div className="space-y-4">
-              <Select onValueChange={setSelectedClass} value={selectedClass}>
-                <SelectTrigger className="h-12 text-lg">
-                  <SelectValue placeholder="Pilih jenjang kelas..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {loading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Select onValueChange={setSelectedClass} value={selectedClass}>
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue placeholder="Pilih jenjang kelas..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">Belum ada kelas</div>
+                    ) : (
+                      classes.map((c) => (
+                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
 
               <Button 
                 className="w-full h-12 text-lg font-bold group" 
-                disabled={!selectedClass}
+                disabled={!selectedClass || loading}
                 onClick={handleStart}
               >
                 Mulai Belajar

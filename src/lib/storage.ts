@@ -1,99 +1,79 @@
 
-"use client";
+'use client';
 
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  where,
+  orderBy,
+  Firestore
+} from 'firebase/firestore';
 import { Question, Submission, ClassLevelData } from './types';
 
-const QUESTIONS_KEY = 'learnscape_questions';
-const SUBMISSIONS_KEY = 'learnscape_submissions';
-const CLASSES_KEY = 'learnscape_classes';
+// These functions now act as wrappers for Firestore operations
+// In a real app, you might use hooks directly, but this maintains the existing API
 
-const INITIAL_CLASSES: ClassLevelData[] = [
-  { id: 'c1', name: 'Kelas 7' },
-  { id: 'c2', name: 'Kelas 8' },
-  { id: 'c3', name: 'Kelas 9' }
-];
-
-const INITIAL_QUESTIONS: Question[] = [
-  {
-    id: '1',
-    classLevel: 'Kelas 7',
-    type: 'multiple-choice',
-    text: 'Siapa penemu gaya gravitasi?',
-    options: ['Isaac Newton', 'Albert Einstein', 'Galileo Galilei', 'Nikola Tesla'],
-    correctAnswer: '0'
-  },
-  {
-    id: '2',
-    classLevel: 'Kelas 8',
-    type: 'numeric',
-    text: 'Berapakah hasil dari 15 x 3?',
-    correctAnswer: '45'
-  }
-];
-
-// Class Management
-export function getClasses(): ClassLevelData[] {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(CLASSES_KEY);
-  if (!stored) {
-    localStorage.setItem(CLASSES_KEY, JSON.stringify(INITIAL_CLASSES));
-    return INITIAL_CLASSES;
-  }
-  return JSON.parse(stored);
+export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
+  const colRef = collection(db, 'classes');
+  const snapshot = await getDocs(colRef);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClassLevelData));
 }
 
-export function saveClass(classData: ClassLevelData) {
-  const classes = getClasses();
-  const index = classes.findIndex(c => c.id === classData.id);
-  if (index > -1) {
-    classes[index] = classData;
+export async function saveClass(db: Firestore, classData: ClassLevelData) {
+  const colRef = collection(db, 'classes');
+  if (classData.id && !classData.id.includes('.')) { // Simple check for existing ID
+    const docRef = doc(db, 'classes', classData.id);
+    await updateDoc(docRef, { name: classData.name });
   } else {
-    classes.push(classData);
+    await addDoc(colRef, { name: classData.name });
   }
-  localStorage.setItem(CLASSES_KEY, JSON.stringify(classes));
 }
 
-export function deleteClass(id: string) {
-  const classes = getClasses().filter(c => c.id !== id);
-  localStorage.setItem(CLASSES_KEY, JSON.stringify(classes));
+export async function deleteClass(db: Firestore, id: string) {
+  await deleteDoc(doc(db, 'classes', id));
 }
 
-// Question Management
-export function getQuestions(): Question[] {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(QUESTIONS_KEY);
-  if (!stored) {
-    localStorage.setItem(QUESTIONS_KEY, JSON.stringify(INITIAL_QUESTIONS));
-    return INITIAL_QUESTIONS;
+export async function getQuestions(db: Firestore, classLevel?: string): Promise<Question[]> {
+  const colRef = collection(db, 'questions');
+  let q = query(colRef);
+  
+  if (classLevel) {
+    q = query(colRef, where('classLevel', '==', classLevel));
   }
-  return JSON.parse(stored);
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
 }
 
-export function saveQuestion(question: Question) {
-  const questions = getQuestions();
-  const index = questions.findIndex(q => q.id === question.id);
-  if (index > -1) {
-    questions[index] = question;
+export async function saveQuestion(db: Firestore, question: Question) {
+  const colRef = collection(db, 'questions');
+  const { id, ...data } = question;
+  
+  if (id && id.length > 5) {
+    await updateDoc(doc(db, 'questions', id), data as any);
   } else {
-    questions.push(question);
+    await addDoc(colRef, data);
   }
-  localStorage.setItem(QUESTIONS_KEY, JSON.stringify(questions));
 }
 
-export function deleteQuestion(id: string) {
-  const questions = getQuestions().filter(q => q.id !== id);
-  localStorage.setItem(QUESTIONS_KEY, JSON.stringify(questions));
+export async function deleteQuestion(db: Firestore, id: string) {
+  await deleteDoc(doc(db, 'questions', id));
 }
 
-// Submission Management
-export function getSubmissions(): Submission[] {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(SUBMISSIONS_KEY);
-  return stored ? JSON.parse(stored) : [];
+export async function getSubmissions(db: Firestore): Promise<Submission[]> {
+  const colRef = collection(db, 'submissions');
+  const q = query(colRef, orderBy('timestamp', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Submission));
 }
 
-export function saveSubmission(submission: Submission) {
-  const submissions = getSubmissions();
-  submissions.push(submission);
-  localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(submissions));
+export async function saveSubmission(db: Firestore, submission: Submission) {
+  const colRef = collection(db, 'submissions');
+  const { id, ...data } = submission;
+  await addDoc(colRef, data);
 }

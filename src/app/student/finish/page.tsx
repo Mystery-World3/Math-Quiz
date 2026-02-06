@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'navigation';
+import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -18,7 +18,11 @@ export default function StudentFinishPage() {
   useEffect(() => {
     const stored = localStorage.getItem('last_submission');
     if (stored) {
-      setData(JSON.parse(stored));
+      try {
+        setData(JSON.parse(stored));
+      } catch (e) {
+        router.push('/');
+      }
     } else {
       router.push('/');
     }
@@ -45,6 +49,7 @@ export default function StudentFinishPage() {
   };
 
   const checkIsCorrect = (q: Question, answer: string) => {
+    if (!answer) return false;
     return answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
   };
 
@@ -90,7 +95,7 @@ export default function StudentFinishPage() {
                 {questions.map((q, idx) => {
                   const isCorrect = checkIsCorrect(q, submission.answers[idx]);
                   return (
-                    <div key={q.id} className="p-6 space-y-3">
+                    <div key={q.id || idx} className="p-6 space-y-3">
                       <div className="flex justify-between gap-4">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-muted-foreground">Soal {idx + 1}</span>

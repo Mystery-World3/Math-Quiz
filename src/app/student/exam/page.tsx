@@ -11,15 +11,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, Sigma, ListTodo } from 'lucide-react';
 import { getQuestions, saveSubmission } from '@/lib/storage';
 import { Question } from '@/lib/types';
-import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, Sigma } from 'lucide-react';
+import { useFirestore } from '@/firebase';
 
 const MATH_SYMBOLS = ['+', '-', '×', '÷', '=', '±', '√', 'π', 'θ', '°', '²', '³', '<', '>'];
 
 function ExamContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const db = useFirestore();
   const studentName = searchParams.get('name') || 'Student';
   const classLevel = searchParams.get('class') || 'Kelas 7';
 
@@ -27,13 +29,23 @@ function ExamContent() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const allQuestions = getQuestions();
-    const filtered = allQuestions.filter(q => q.classLevel === classLevel);
-    setQuestions(filtered);
-    setAnswers(new Array(filtered.length).fill(''));
-  }, [classLevel]);
+    async function loadData() {
+      if (!db) return;
+      try {
+        const filtered = await getQuestions(db, classLevel);
+        setQuestions(filtered);
+        setAnswers(new Array(filtered.length).fill(''));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [classLevel, db]);
 
   const handleAnswerChange = (val: string) => {
     const newAnswers = [...answers];
@@ -58,7 +70,8 @@ function ExamContent() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!db) return;
     setIsSubmitting(true);
     let score = 0;
     questions.forEach((q, idx) => {
@@ -67,7 +80,7 @@ function ExamContent() {
       }
     });
 
-    const finalScore = Math.round((score / questions.length) * 100);
+    const finalScore = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
     const submission = {
       id: Math.random().toString(36).substr(2, 9),
@@ -79,16 +92,18 @@ function ExamContent() {
       timestamp: new Date().toISOString()
     };
 
-    saveSubmission(submission);
+    await saveSubmission(db, submission);
 
-    setTimeout(() => {
-      localStorage.setItem('last_submission', JSON.stringify({
-        submission,
-        questions
-      }));
-      router.push('/student/finish');
-    }, 1000);
+    localStorage.setItem('last_submission', JSON.stringify({
+      submission,
+      questions
+    }));
+    router.push('/student/finish');
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Memuat soal...</div>;
+  }
 
   if (questions.length === 0) {
     return (
@@ -175,11 +190,11 @@ function ExamContent() {
                   </div>
                 </div>
 
-                {/* Math Symbol Toolbar */}
                 <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
                   {MATH_SYMBOLS.map(symbol => (
                     <Button
                       key={symbol}
+                      type="button"
                       variant="outline"
                       size="sm"
                       className="h-10 w-10 font-bold text-lg"
@@ -199,9 +214,6 @@ function ExamContent() {
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   autoFocus
                 />
-                <p className="text-sm text-muted-foreground text-center italic">
-                  Gunakan panel tombol di atas untuk memasukkan simbol matematika.
-                </p>
               </div>
             )}
           </CardContent>
@@ -214,7 +226,7 @@ function ExamContent() {
               <Button 
                 onClick={handleSubmit} 
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-8"
-                disabled={answers.some(a => a === '') || isSubmitting}
+                disabled={answers[currentIdx] === '' || isSubmitting}
               >
                 {isSubmitting ? 'Memproses...' : (
                   <>Selesai & Kumpulkan <Send className="ml-2 h-4 w-4" /></>
@@ -227,12 +239,6 @@ function ExamContent() {
             )}
           </CardFooter>
         </Card>
-
-        {answers.some(a => a === '') && (
-          <p className="text-center text-sm text-muted-foreground italic">
-            Harap isi semua jawaban sebelum mengumpulkan.
-          </p>
-        )}
       </main>
     </div>
   );
