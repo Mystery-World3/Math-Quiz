@@ -2,13 +2,13 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'navigation';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { CheckCircle, XCircle, Trophy, RefreshCcw, Hash, ListTodo } from 'lucide-react';
+import { CheckCircle, XCircle, Trophy, RefreshCcw, Hash, ListTodo, Type } from 'lucide-react';
 import { Submission, Question } from '@/lib/types';
 
 export default function StudentFinishPage() {
@@ -44,6 +44,10 @@ export default function StudentFinishPage() {
     return q.correctAnswer;
   };
 
+  const checkIsCorrect = (q: Question, answer: string) => {
+    return answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="p-6 max-w-5xl mx-auto w-full">
@@ -66,7 +70,7 @@ export default function StudentFinishPage() {
             <div className="w-px bg-border h-16 self-center" />
             <div className="text-center">
               <span className="block text-5xl font-bold text-primary">
-                {submission.answers.filter((a, i) => a.trim() === questions[i].correctAnswer.trim()).length}
+                {submission.answers.filter((a, i) => checkIsCorrect(questions[i], a)).length}
                 <span className="text-2xl text-muted-foreground">/{questions.length}</span>
               </span>
               <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Jawaban Benar</span>
@@ -84,14 +88,14 @@ export default function StudentFinishPage() {
             <ScrollArea className="h-[400px]">
               <div className="divide-y">
                 {questions.map((q, idx) => {
-                  const isCorrect = submission.answers[idx].trim() === q.correctAnswer.trim();
+                  const isCorrect = checkIsCorrect(q, submission.answers[idx]);
                   return (
                     <div key={q.id} className="p-6 space-y-3">
                       <div className="flex justify-between gap-4">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-muted-foreground">Soal {idx + 1}</span>
                           <Badge variant="outline" className="text-[10px] uppercase h-5">
-                            {q.type === 'multiple-choice' ? <><ListTodo className="h-3 w-3 mr-1" /> Pilihan</> : <><Hash className="h-3 w-3 mr-1" /> Isian</>}
+                            {q.type === 'multiple-choice' ? <><ListTodo className="h-3 w-3 mr-1" /> Pilihan</> : q.type === 'numeric' ? <><Hash className="h-3 w-3 mr-1" /> Angka</> : <><Type className="h-3 w-3 mr-1" /> Isian</>}
                           </Badge>
                         </div>
                         {isCorrect ? (

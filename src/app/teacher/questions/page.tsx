@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
 import { Question, ClassLevelData, QuestionType } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -85,8 +85,8 @@ export default function ManageQuestions() {
       return;
     }
 
-    if (qType === 'numeric' && !qCorrectValue) {
-      toast({ title: "Error", description: "Harap isi jawaban angka yang benar.", variant: "destructive" });
+    if ((qType === 'numeric' || qType === 'short-answer') && !qCorrectValue) {
+      toast({ title: "Error", description: "Harap isi jawaban yang benar.", variant: "destructive" });
       return;
     }
 
@@ -172,12 +172,15 @@ export default function ManageQuestions() {
                   <div className="space-y-2">
                     <Label>Tipe Soal</Label>
                     <Tabs value={qType} onValueChange={(val) => setQType(val as QuestionType)} className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="multiple-choice" className="gap-2">
-                          <ListTodo className="h-4 w-4" /> Pilihan
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="multiple-choice" className="gap-1 text-xs px-1">
+                          <ListTodo className="h-3 w-3" /> Pilihan
                         </TabsTrigger>
-                        <TabsTrigger value="numeric" className="gap-2">
-                          <Hash className="h-4 w-4" /> Angka
+                        <TabsTrigger value="numeric" className="gap-1 text-xs px-1">
+                          <Hash className="h-3 w-3" /> Angka
+                        </TabsTrigger>
+                        <TabsTrigger value="short-answer" className="gap-1 text-xs px-1">
+                          <Type className="h-3 w-3" /> Isian
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
@@ -188,7 +191,7 @@ export default function ManageQuestions() {
                   <Input 
                     value={qText} 
                     onChange={(e) => setQText(e.target.value)} 
-                    placeholder="Tuliskan pertanyaan di sini..." 
+                    placeholder="Tuliskan pertanyaan di sini... Gunakan simbol jika perlu (√, π, ±)" 
                   />
                 </div>
                 
@@ -220,13 +223,16 @@ export default function ManageQuestions() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label>Jawaban Angka yang Benar</Label>
+                    <Label>Jawaban Benar</Label>
                     <Input 
-                      type="number"
+                      type={qType === 'numeric' ? 'number' : 'text'}
                       value={qCorrectValue}
                       onChange={(e) => setQCorrectValue(e.target.value)}
-                      placeholder="Masukkan angka jawaban..."
+                      placeholder={qType === 'numeric' ? "Masukkan angka..." : "Masukkan jawaban teks/simbol..."}
                     />
+                    <p className="text-xs text-muted-foreground italic">
+                      {qType === 'short-answer' ? 'Siswa harus mengetikkan jawaban yang sama persis (case-sensitive).' : 'Hanya menerima input angka.'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -255,11 +261,11 @@ export default function ManageQuestions() {
                     ) : (
                       classQuestions.map((q) => (
                         <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
-                          {q.type === 'numeric' && (
-                            <div className="absolute top-0 right-0 p-1">
-                              <Badge variant="secondary" className="text-[10px] uppercase font-bold">Angka</Badge>
-                            </div>
-                          )}
+                          <div className="absolute top-0 right-0 p-1">
+                            <Badge variant="secondary" className="text-[10px] uppercase font-bold">
+                              {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
+                            </Badge>
+                          </div>
                           <CardContent className="p-6">
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex-1">

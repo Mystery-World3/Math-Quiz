@@ -4,7 +4,7 @@ export interface ClassLevelData {
   name: string;
 }
 
-export type QuestionType = 'multiple-choice' | 'numeric';
+export type QuestionType = 'multiple-choice' | 'numeric' | 'short-answer';
 
 export interface Question {
   id: string;
@@ -12,7 +12,7 @@ export interface Question {
   text: string;
   type: QuestionType;
   options?: string[];
-  correctAnswer: string; // Menyimpan index (untuk MC) atau nilai angka (untuk Numeric) sebagai string
+  correctAnswer: string; // Menyimpan index (untuk MC) atau nilai jawaban (untuk Numeric/Short Answer) sebagai string
 }
 
 export interface Submission {

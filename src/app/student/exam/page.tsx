@@ -10,9 +10,12 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveSubmission } from '@/lib/storage';
 import { Question } from '@/lib/types';
-import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, Sigma } from 'lucide-react';
+
+const MATH_SYMBOLS = ['+', '-', '×', '÷', '=', '±', '√', 'π', 'θ', '°', '²', '³', '<', '>'];
 
 function ExamContent() {
   const router = useRouter();
@@ -38,6 +41,11 @@ function ExamContent() {
     setAnswers(newAnswers);
   };
 
+  const insertSymbol = (symbol: string) => {
+    const currentAnswer = answers[currentIdx] || '';
+    handleAnswerChange(currentAnswer + symbol);
+  };
+
   const handleNext = () => {
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(currentIdx + 1);
@@ -54,7 +62,7 @@ function ExamContent() {
     setIsSubmitting(true);
     let score = 0;
     questions.forEach((q, idx) => {
-      if (answers[idx].trim() === q.correctAnswer.trim()) {
+      if (answers[idx].trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
         score++;
       }
     });
@@ -124,11 +132,10 @@ function ExamContent() {
               <CardTitle className="text-xl leading-relaxed flex-1">
                 {currentQuestion.text}
               </CardTitle>
-              {currentQuestion.type === 'numeric' && (
-                <Badge variant="outline" className="gap-1 text-xs py-1">
-                  <Hash className="h-3 w-3" /> Isian Angka
-                </Badge>
-              )}
+              <Badge variant="outline" className="gap-1 text-xs py-1 shrink-0">
+                {currentQuestion.type === 'multiple-choice' ? <ListTodo className="h-3 w-3" /> : currentQuestion.type === 'numeric' ? <Hash className="h-3 w-3" /> : <Type className="h-3 w-3" />}
+                {currentQuestion.type === 'multiple-choice' ? 'Pilihan' : currentQuestion.type === 'numeric' ? 'Angka' : 'Isian'}
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -161,17 +168,40 @@ function ExamContent() {
               </RadioGroup>
             ) : (
               <div className="space-y-4 pt-4">
-                <Label htmlFor="numeric-answer" className="text-lg font-bold">Masukkan Jawaban:</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="text-answer" className="text-lg font-bold">Masukkan Jawaban:</Label>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Sigma className="h-3 w-3" /> Panel Simbol
+                  </div>
+                </div>
+
+                {/* Math Symbol Toolbar */}
+                <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
+                  {MATH_SYMBOLS.map(symbol => (
+                    <Button
+                      key={symbol}
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-10 font-bold text-lg"
+                      onClick={() => insertSymbol(symbol)}
+                    >
+                      {symbol}
+                    </Button>
+                  ))}
+                </div>
+
                 <Input 
-                  id="numeric-answer"
-                  type="number"
-                  placeholder="Ketik angka di sini..."
+                  id="text-answer"
+                  type={currentQuestion.type === 'numeric' ? 'number' : 'text'}
+                  placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban/simbol..."}
                   className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary"
                   value={answers[currentIdx]}
                   onChange={(e) => handleAnswerChange(e.target.value)}
                   autoFocus
                 />
-                <p className="text-sm text-muted-foreground text-center italic">Pastikan angka yang kamu masukkan sudah benar.</p>
+                <p className="text-sm text-muted-foreground text-center italic">
+                  Gunakan panel tombol di atas untuk memasukkan simbol matematika.
+                </p>
               </div>
             )}
           </CardContent>
