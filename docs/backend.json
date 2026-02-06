@@ -42,7 +42,7 @@
     },
     "Submission": {
       "title": "Submission",
-      "description": "A student's worksheet submission",
+      "description": "A student's worksheet submission result",
       "type": "object",
       "properties": {
         "studentName": {
@@ -85,7 +85,7 @@
     },
     "/submissions/{submissionId}": {
       "schema": "Submission",
-      "description": "Collection of student exam results"
+      "description": "Collection of student exam results with full management access"
     }
   }
 }

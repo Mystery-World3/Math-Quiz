@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -35,30 +36,15 @@ export default function TeacherResults() {
   const [editName, setEditName] = useState('');
   const [editScore, setEditScore] = useState(0);
 
-  const handleDelete = async (id: string, studentName: string) => {
-    if (!db || !id) {
-      toast({ 
-        title: "Error", 
-        description: "ID data tidak valid.", 
-        variant: "destructive" 
-      });
-      return;
-    }
+  const handleDelete = (id: string, studentName: string) => {
+    if (!db || !id) return;
     
-    if (confirm(`Apakah Anda yakin ingin menghapus data pengerjaan dari "${studentName}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      try {
-        await deleteSubmission(db, id);
-        toast({ 
-          title: "Berhasil", 
-          description: `Data "${studentName}" telah dikirim untuk dihapus.`,
-        });
-      } catch (e) {
-        toast({
-          title: "Gagal Menghapus",
-          description: "Terjadi kesalahan saat mencoba menghapus data.",
-          variant: "destructive"
-        });
-      }
+    if (confirm(`Apakah Anda yakin ingin menghapus hasil dari "${studentName}"?`)) {
+      deleteSubmission(db, id);
+      toast({ 
+        title: "Menghapus...", 
+        description: `Data "${studentName}" sedang diproses untuk dihapus.`,
+      });
     }
   };
 
@@ -69,14 +55,14 @@ export default function TeacherResults() {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!db || !editingResult) return;
     updateSubmission(db, editingResult.id, {
       studentName: editName,
       score: editScore
     });
     setIsEditModalOpen(false);
-    toast({ title: "Memproses", description: "Pembaruan data sedang dikirim..." });
+    toast({ title: "Memproses...", description: "Perubahan sedang disimpan." });
   };
 
   const filteredSubmissions = useMemo(() => {

@@ -75,15 +75,16 @@ function ExamContent() {
     setIsSubmitting(true);
     let score = 0;
     questions.forEach((q, idx) => {
-      if (answers[idx].trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
+      const studentAnswer = (answers[idx] || '').trim().toLowerCase();
+      const correctAnswer = (q.correctAnswer || '').trim().toLowerCase();
+      if (studentAnswer === correctAnswer) {
         score++;
       }
     });
 
     const finalScore = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
-    const submission = {
-      id: Math.random().toString(36).substr(2, 9),
+    const submissionData = {
       studentName,
       classLevel,
       score: finalScore,
@@ -92,10 +93,11 @@ function ExamContent() {
       timestamp: new Date().toISOString()
     };
 
-    await saveSubmission(db, submission);
+    // Firebase akan membuatkan ID dokumen otomatis
+    saveSubmission(db, submissionData);
 
     localStorage.setItem('last_submission', JSON.stringify({
-      submission,
+      submission: submissionData,
       questions
     }));
     router.push('/student/finish');
@@ -207,7 +209,7 @@ function ExamContent() {
 
                 <Input 
                   id="text-answer"
-                  type={currentQuestion.type === 'numeric' ? 'number' : 'text'}
+                  type={currentQuestion.type === 'numeric' ? 'text' : 'text'}
                   placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban/simbol..."}
                   className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary"
                   value={answers[currentIdx]}
