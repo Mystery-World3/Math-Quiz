@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { getSubmissions } from '@/lib/storage';
 import { Submission } from '@/lib/types';
-import { Users, FileText, LayoutDashboard, LogOut, ChevronRight } from 'lucide-react';
+import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function TeacherDashboard() {
@@ -36,6 +36,11 @@ export default function TeacherDashboard() {
           <Link href="/teacher/questions">
             <Button variant="ghost" className="w-full justify-start">
               <FileText className="mr-2 h-4 w-4" /> Kelola Soal
+            </Button>
+          </Link>
+          <Link href="/teacher/classes">
+            <Button variant="ghost" className="w-full justify-start">
+              <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
             </Button>
           </Link>
         </nav>
@@ -141,7 +146,7 @@ export default function TeacherDashboard() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {s.answers.filter((a, i) => a === 0).length} / {s.totalQuestions}
+                          {Math.round((s.score / 100) * s.totalQuestions)} / {s.totalQuestions}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {format(new Date(s.timestamp), 'dd MMM yyyy, HH:mm')}

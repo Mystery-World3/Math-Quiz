@@ -1,9 +1,12 @@
 
-export type ClassLevel = 'Kelas 7' | 'Kelas 8' | 'Kelas 9';
+export interface ClassLevelData {
+  id: string;
+  name: string;
+}
 
 export interface Question {
   id: string;
-  classLevel: ClassLevel;
+  classLevel: string;
   text: string;
   options: string[];
   correctAnswer: number; // Index in options
@@ -12,7 +15,7 @@ export interface Question {
 export interface Submission {
   id: string;
   studentName: string;
-  classLevel: ClassLevel;
+  classLevel: string;
   score: number;
   totalQuestions: number;
   answers: number[]; // Index of student's choice for each question

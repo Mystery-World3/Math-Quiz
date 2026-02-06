@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -15,10 +15,17 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { GraduationCap, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import { getClasses } from '@/lib/storage';
+import { ClassLevelData } from '@/lib/types';
 
 export default function LandingPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
+  const [classes, setClasses] = useState<ClassLevelData[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    setClasses(getClasses());
+  }, []);
 
   const handleStart = () => {
     if (selectedClass) {
@@ -58,9 +65,9 @@ export default function LandingPage() {
                   <SelectValue placeholder="Pilih jenjang kelas..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Kelas 7">Kelas 7</SelectItem>
-                  <SelectItem value="Kelas 8">Kelas 8</SelectItem>
-                  <SelectItem value="Kelas 9">Kelas 9</SelectItem>
+                  {classes.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 

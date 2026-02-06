@@ -10,31 +10,38 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { getQuestions, saveQuestion, deleteQuestion } from '@/lib/storage';
-import { Question, ClassLevel } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2 } from 'lucide-react';
+import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
+import { Question, ClassLevelData } from '@/lib/types';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 
 export default function ManageQuestions() {
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [classes, setClasses] = useState<ClassLevelData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const { toast } = useToast();
 
   // Form state
   const [qText, setQText] = useState('');
-  const [qClass, setQClass] = useState<ClassLevel>('Kelas 7');
+  const [qClass, setQClass] = useState('');
   const [qOptions, setQOptions] = useState(['', '', '', '']);
   const [qCorrect, setQCorrect] = useState(0);
 
   useEffect(() => {
-    setQuestions(getQuestions());
+    const loadedQuestions = getQuestions();
+    const loadedClasses = getClasses();
+    setQuestions(loadedQuestions);
+    setClasses(loadedClasses);
+    if (loadedClasses.length > 0) {
+      setQClass(loadedClasses[0].name);
+    }
   }, []);
 
   const resetForm = () => {
     setQText('');
-    setQClass('Kelas 7');
+    setQClass(classes[0]?.name || '');
     setQOptions(['', '', '', '']);
     setQCorrect(0);
     setEditingQuestion(null);
@@ -58,7 +65,7 @@ export default function ManageQuestions() {
   };
 
   const handleSave = () => {
-    if (!qText || qOptions.some(o => !o)) {
+    if (!qText || qOptions.some(o => !o) || !qClass) {
       toast({ title: "Error", description: "Harap isi semua bidang.", variant: "destructive" });
       return;
     }
@@ -80,7 +87,6 @@ export default function ManageQuestions() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar - Shared Component Logic could be extracted but keeping it simple */}
       <aside className="w-64 bg-white border-r hidden md:flex flex-col">
         <div className="p-6">
           <Logo />
@@ -94,6 +100,11 @@ export default function ManageQuestions() {
           <Link href="/teacher/questions">
             <Button variant="secondary" className="w-full justify-start font-bold">
               <FileText className="mr-2 h-4 w-4" /> Kelola Soal
+            </Button>
+          </Link>
+          <Link href="/teacher/classes">
+            <Button variant="ghost" className="w-full justify-start">
+              <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
             </Button>
           </Link>
         </nav>
@@ -126,14 +137,14 @@ export default function ManageQuestions() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Jenjang Kelas</Label>
-                    <Select value={qClass} onValueChange={(val: ClassLevel) => setQClass(val)}>
+                    <Select value={qClass} onValueChange={(val) => setQClass(val)}>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Pilih kelas" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Kelas 7">Kelas 7</SelectItem>
-                        <SelectItem value="Kelas 8">Kelas 8</SelectItem>
-                        <SelectItem value="Kelas 9">Kelas 9</SelectItem>
+                        {classes.map(c => (
+                          <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -182,17 +193,17 @@ export default function ManageQuestions() {
 
         <div className="flex-1 overflow-auto p-8">
           <div className="grid grid-cols-1 gap-4">
-            {['Kelas 7', 'Kelas 8', 'Kelas 9'].map((level) => {
-              const classQuestions = questions.filter(q => q.classLevel === level);
+            {classes.map((cls) => {
+              const classQuestions = questions.filter(q => q.classLevel === cls.name);
               return (
-                <div key={level} className="space-y-4">
+                <div key={cls.id} className="space-y-4">
                   <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center gap-2">
-                    {level} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
+                    {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
                   </h2>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {classQuestions.length === 0 ? (
                       <p className="text-sm italic text-muted-foreground p-4 bg-white rounded-lg border border-dashed">
-                        Belum ada soal untuk {level}.
+                        Belum ada soal untuk {cls.name}.
                       </p>
                     ) : (
                       classQuestions.map((q) => (

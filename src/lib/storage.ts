@@ -1,10 +1,17 @@
 
 "use client";
 
-import { Question, Submission, ClassLevel } from './types';
+import { Question, Submission, ClassLevelData } from './types';
 
 const QUESTIONS_KEY = 'learnscape_questions';
 const SUBMISSIONS_KEY = 'learnscape_submissions';
+const CLASSES_KEY = 'learnscape_classes';
+
+const INITIAL_CLASSES: ClassLevelData[] = [
+  { id: 'c1', name: 'Kelas 7' },
+  { id: 'c2', name: 'Kelas 8' },
+  { id: 'c3', name: 'Kelas 9' }
+];
 
 const INITIAL_QUESTIONS: Question[] = [
   {
@@ -23,6 +30,34 @@ const INITIAL_QUESTIONS: Question[] = [
   }
 ];
 
+// Class Management
+export function getClasses(): ClassLevelData[] {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(CLASSES_KEY);
+  if (!stored) {
+    localStorage.setItem(CLASSES_KEY, JSON.stringify(INITIAL_CLASSES));
+    return INITIAL_CLASSES;
+  }
+  return JSON.parse(stored);
+}
+
+export function saveClass(classData: ClassLevelData) {
+  const classes = getClasses();
+  const index = classes.findIndex(c => c.id === classData.id);
+  if (index > -1) {
+    classes[index] = classData;
+  } else {
+    classes.push(classData);
+  }
+  localStorage.setItem(CLASSES_KEY, JSON.stringify(classes));
+}
+
+export function deleteClass(id: string) {
+  const classes = getClasses().filter(c => c.id !== id);
+  localStorage.setItem(CLASSES_KEY, JSON.stringify(classes));
+}
+
+// Question Management
 export function getQuestions(): Question[] {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(QUESTIONS_KEY);
@@ -49,6 +84,7 @@ export function deleteQuestion(id: string) {
   localStorage.setItem(QUESTIONS_KEY, JSON.stringify(questions));
 }
 
+// Submission Management
 export function getSubmissions(): Submission[] {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(SUBMISSIONS_KEY);
