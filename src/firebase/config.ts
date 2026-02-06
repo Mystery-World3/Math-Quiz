@@ -1,10 +1,14 @@
 'use client';
 
+/**
+ * Konfigurasi Firebase menggunakan Environment Variables.
+ * Pastikan untuk menambahkan variabel-variabel ini di dashboard Vercel Anda.
+ */
 export const firebaseConfig = {
-  apiKey: "env-api-key",
-  authDomain: "env-auth-domain",
-  projectId: "env-project-id",
-  storageBucket: "env-storage-bucket",
-  messagingSenderId: "env-messaging-sender-id",
-  appId: "env-app-id"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
