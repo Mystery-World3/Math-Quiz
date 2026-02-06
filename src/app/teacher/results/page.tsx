@@ -29,7 +29,7 @@ export default function TeacherResults() {
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
   }, [db]);
 
-  const { data: submissions = [], loading } = useCollection<Submission>(submissionsQuery);
+  const { data: submissions, loading } = useCollection<Submission>(submissionsQuery);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingResult, setEditingResult] = useState<Submission | null>(null);
@@ -79,9 +79,10 @@ export default function TeacherResults() {
   };
 
   const filteredSubmissions = useMemo(() => {
+    if (!submissions) return [];
     return submissions.filter(s => 
-      s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.classLevel.toLowerCase().includes(searchTerm.toLowerCase())
+      (s.studentName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (s.classLevel?.toLowerCase() || "").includes(searchTerm.toLowerCase())
     );
   }, [submissions, searchTerm]);
 

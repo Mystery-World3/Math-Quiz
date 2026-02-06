@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -5,7 +6,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/table';
 import { Badge } from '@/components/ui/badge';
 import { Submission } from '@/lib/types';
 import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings, Loader2, BarChart3 } from 'lucide-react';
@@ -17,13 +18,14 @@ import { collection, query, orderBy } from 'firebase/firestore';
 export default function TeacherDashboard() {
   const db = useFirestore();
   
-  // Real-time collection for automatic updates
   const submissionsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
   }, [db]);
 
-  const { data: submissions = [], loading } = useCollection<Submission>(submissionsQuery);
+  const { data: submissions, loading } = useCollection<Submission>(submissionsQuery);
+
+  const safeSubmissions = submissions || [];
 
   const chartData = useMemo(() => {
     const ranges = [
@@ -33,23 +35,21 @@ export default function TeacherDashboard() {
       { name: '86-100', count: 0, color: '#10b981' },
     ];
     
-    if (submissions) {
-      submissions.forEach(s => {
-        if (s.score <= 50) ranges[0].count++;
-        else if (s.score <= 70) ranges[1].count++;
-        else if (s.score <= 85) ranges[2].count++;
-        else ranges[3].count++;
-      });
-    }
+    safeSubmissions.forEach(s => {
+      if (s.score <= 50) ranges[0].count++;
+      else if (s.score <= 70) ranges[1].count++;
+      else if (s.score <= 85) ranges[2].count++;
+      else ranges[3].count++;
+    });
     
     return ranges;
-  }, [submissions]);
+  }, [safeSubmissions]);
 
   const averageScore = useMemo(() => {
-    if (!submissions || submissions.length === 0) return 0;
-    const total = submissions.reduce((acc, s) => acc + s.score, 0);
-    return Math.round(total / submissions.length);
-  }, [submissions]);
+    if (safeSubmissions.length === 0) return 0;
+    const total = safeSubmissions.reduce((acc, s) => acc + s.score, 0);
+    return Math.round(total / safeSubmissions.length);
+  }, [safeSubmissions]);
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -105,7 +105,7 @@ export default function TeacherDashboard() {
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-80">Total Peserta</p>
-                  <p className="text-4xl font-bold">{submissions?.length || 0}</p>
+                  <p className="text-4xl font-bold">{safeSubmissions.length}</p>
                 </div>
                 <Users className="h-10 w-10 opacity-30" />
               </CardContent>
@@ -125,7 +125,7 @@ export default function TeacherDashboard() {
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Peserta Terakhir</p>
-                  <p className="text-lg font-bold truncate max-w-[150px]">{submissions && submissions[0]?.studentName || '-'}</p>
+                  <p className="text-lg font-bold truncate max-w-[150px]">{safeSubmissions[0]?.studentName || '-'}</p>
                 </div>
                 <ChevronRight className="h-8 w-8 text-muted-foreground" />
               </CardContent>
@@ -172,14 +172,14 @@ export default function TeacherDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {submissions && submissions.slice(0, 5).map((s) => (
+                    {safeSubmissions.slice(0, 5).map((s) => (
                       <TableRow key={s.id}>
                         <TableCell className="font-bold">{s.studentName}</TableCell>
                         <TableCell><Badge variant="outline">{s.classLevel}</Badge></TableCell>
                         <TableCell className={`font-bold ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>{s.score}</TableCell>
                       </TableRow>
                     ))}
-                    {(!submissions || submissions.length === 0) && !loading && (
+                    {safeSubmissions.length === 0 && !loading && (
                       <TableRow><TableCell colSpan={3} className="text-center py-4 italic text-muted-foreground">Belum ada data</TableCell></TableRow>
                     )}
                   </TableBody>
