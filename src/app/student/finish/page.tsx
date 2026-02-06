@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -10,6 +9,19 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, XCircle, Trophy, RefreshCcw, Hash, ListTodo, Type } from 'lucide-react';
 import { Submission, Question } from '@/lib/types';
+
+/**
+ * Normalisasi jawaban untuk perbandingan yang lebih fleksibel (Review Page).
+ */
+function normalizeText(text: string): string {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/^[a-z]\s*[=]/g, '')
+    .replace(/(meter|m|cm|kg|gram|gr|km|mm|liter|l|°)$/g, '')
+    .trim();
+}
 
 export default function StudentFinishPage() {
   const router = useRouter();
@@ -50,7 +62,10 @@ export default function StudentFinishPage() {
 
   const checkIsCorrect = (q: Question, answer: string) => {
     if (!answer) return false;
-    return answer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+    if (q.type === 'multiple-choice') {
+      return answer.trim() === q.correctAnswer.trim();
+    }
+    return normalizeText(answer) === normalizeText(q.correctAnswer);
   };
 
   return (

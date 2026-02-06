@@ -16,6 +16,20 @@ import { Question } from '@/lib/types';
 import { useFirestore } from '@/firebase';
 import { SymbolKeyboard } from '@/components/SymbolKeyboard';
 
+/**
+ * Normalisasi jawaban untuk perbandingan yang lebih fleksibel.
+ * Menghapus spasi, mengubah ke huruf kecil, dan membuang awalan 'x=' atau satuan.
+ */
+function normalizeText(text: string): string {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, '') // Hapus semua spasi
+    .replace(/^[a-z]\s*[=]/g, '') // Hapus awalan "x=", "y=", "z="
+    .replace(/(meter|m|cm|kg|gram|gr|km|mm|liter|l|°)$/g, '') // Hapus satuan umum di akhir
+    .trim();
+}
+
 function ExamContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -71,16 +85,23 @@ function ExamContent() {
   const handleSubmit = async () => {
     if (!db) return;
     setIsSubmitting(true);
-    let score = 0;
+    let scoreCount = 0;
+    
     questions.forEach((q, idx) => {
-      const studentAnswer = (answers[idx] || '').trim().toLowerCase();
-      const correctAnswer = (q.correctAnswer || '').trim().toLowerCase();
-      if (studentAnswer === correctAnswer) {
-        score++;
+      const studentRaw = answers[idx] || '';
+      const teacherRaw = q.correctAnswer || '';
+      
+      if (q.type === 'multiple-choice') {
+        if (studentRaw === teacherRaw) scoreCount++;
+      } else {
+        // Gunakan normalisasi untuk Isian Angka dan Isian Singkat
+        if (normalizeText(studentRaw) === normalizeText(teacherRaw)) {
+          scoreCount++;
+        }
       }
     });
 
-    const finalScore = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+    const finalScore = questions.length > 0 ? Math.round((scoreCount / questions.length) * 100) : 0;
 
     const submissionData = {
       studentName,
