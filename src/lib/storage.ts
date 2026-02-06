@@ -134,13 +134,9 @@ export function updateSubmission(db: Firestore, id: string, data: Partial<Submis
 }
 
 export function deleteSubmission(db: Firestore, id: string) {
-  if (!id) {
-    console.error("Delete failed: No ID provided");
-    return;
-  }
+  if (!id) return;
   const docRef = doc(db, 'submissions', id);
-  deleteDoc(docRef).catch(async (error) => {
-    console.error("Firestore Delete Error:", error);
+  deleteDoc(docRef).catch(async () => {
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete'

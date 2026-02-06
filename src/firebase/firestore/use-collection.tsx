@@ -27,7 +27,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           const docData = doc.data() as any;
           return {
             ...docData,
-            id: doc.id, // ID dari Firestore harus menimpa ID di dalam data
+            id: doc.id, // Sangat penting: Menjamin properti 'id' adalah ID dokumen asli Firestore
           } as T;
         });
         setData(items);

@@ -37,27 +37,14 @@ export default function TeacherResults() {
   const [editScore, setEditScore] = useState(0);
 
   const handleDelete = (id: string, studentName: string) => {
-    if (!db) return;
+    if (!db || !id) return;
     
-    if (!id) {
-      toast({ title: "Error", description: "ID data tidak ditemukan.", variant: "destructive" });
-      return;
-    }
-    
-    if (confirm(`Apakah Anda yakin ingin menghapus data pengerjaan "${studentName}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      try {
-        deleteSubmission(db, id);
-        toast({ 
-          title: "Proses Menghapus", 
-          description: `Data "${studentName}" sedang dihapus...`,
-        });
-      } catch (e) {
-        toast({ 
-          title: "Gagal", 
-          description: "Gagal mengirim perintah hapus.",
-          variant: "destructive"
-        });
-      }
+    if (confirm(`Apakah Anda yakin ingin menghapus data pengerjaan "${studentName}"?`)) {
+      deleteSubmission(db, id);
+      toast({ 
+        title: "Dihapus", 
+        description: `Data "${studentName}" telah dikirim untuk dihapus.`,
+      });
     }
   };
 
@@ -69,7 +56,7 @@ export default function TeacherResults() {
   };
 
   const handleSaveEdit = () => {
-    if (!db || !editingResult) return;
+    if (!db || !editingResult || !editingResult.id) return;
     updateSubmission(db, editingResult.id, {
       studentName: editName,
       score: editScore
