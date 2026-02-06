@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion } from '@/lib/storage';
 import { Question, ClassLevel } from '@/lib/types';
 import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2 } from 'lucide-react';
