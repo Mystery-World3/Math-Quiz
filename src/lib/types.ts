@@ -4,12 +4,15 @@ export interface ClassLevelData {
   name: string;
 }
 
+export type QuestionType = 'multiple-choice' | 'numeric';
+
 export interface Question {
   id: string;
   classLevel: string;
   text: string;
-  options: string[];
-  correctAnswer: number; // Index in options
+  type: QuestionType;
+  options?: string[];
+  correctAnswer: string; // Menyimpan index (untuk MC) atau nilai angka (untuk Numeric) sebagai string
 }
 
 export interface Submission {
@@ -18,6 +21,6 @@ export interface Submission {
   classLevel: string;
   score: number;
   totalQuestions: number;
-  answers: number[]; // Index of student's choice for each question
+  answers: string[]; // Menyimpan jawaban siswa sebagai string
   timestamp: string;
 }

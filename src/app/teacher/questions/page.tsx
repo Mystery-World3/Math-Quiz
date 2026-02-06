@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
-import { Question, ClassLevelData } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings } from 'lucide-react';
+import { Question, ClassLevelData, QuestionType } from '@/lib/types';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ManageQuestions() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -25,9 +26,11 @@ export default function ManageQuestions() {
 
   // Form state
   const [qText, setQText] = useState('');
+  const [qType, setQType] = useState<QuestionType>('multiple-choice');
   const [qClass, setQClass] = useState('');
   const [qOptions, setQOptions] = useState(['', '', '', '']);
-  const [qCorrect, setQCorrect] = useState(0);
+  const [qCorrectIndex, setQCorrectIndex] = useState(0);
+  const [qCorrectValue, setQCorrectValue] = useState('');
 
   useEffect(() => {
     const loadedQuestions = getQuestions();
@@ -41,18 +44,25 @@ export default function ManageQuestions() {
 
   const resetForm = () => {
     setQText('');
+    setQType('multiple-choice');
     setQClass(classes[0]?.name || '');
     setQOptions(['', '', '', '']);
-    setQCorrect(0);
+    setQCorrectIndex(0);
+    setQCorrectValue('');
     setEditingQuestion(null);
   };
 
   const handleEdit = (q: Question) => {
     setEditingQuestion(q);
     setQText(q.text);
+    setQType(q.type);
     setQClass(q.classLevel);
-    setQOptions([...q.options]);
-    setQCorrect(q.correctAnswer);
+    if (q.type === 'multiple-choice') {
+      setQOptions([...(q.options || ['', '', '', ''])]);
+      setQCorrectIndex(parseInt(q.correctAnswer));
+    } else {
+      setQCorrectValue(q.correctAnswer);
+    }
     setIsModalOpen(true);
   };
 
@@ -65,17 +75,28 @@ export default function ManageQuestions() {
   };
 
   const handleSave = () => {
-    if (!qText || qOptions.some(o => !o) || !qClass) {
-      toast({ title: "Error", description: "Harap isi semua bidang.", variant: "destructive" });
+    if (!qText || !qClass) {
+      toast({ title: "Error", description: "Harap isi pertanyaan dan kelas.", variant: "destructive" });
+      return;
+    }
+
+    if (qType === 'multiple-choice' && (qOptions.some(o => !o))) {
+      toast({ title: "Error", description: "Harap isi semua opsi jawaban.", variant: "destructive" });
+      return;
+    }
+
+    if (qType === 'numeric' && !qCorrectValue) {
+      toast({ title: "Error", description: "Harap isi jawaban angka yang benar.", variant: "destructive" });
       return;
     }
 
     const newQuestion: Question = {
       id: editingQuestion?.id || Math.random().toString(36).substr(2, 9),
       text: qText,
+      type: qType,
       classLevel: qClass,
-      options: qOptions,
-      correctAnswer: qCorrect
+      options: qType === 'multiple-choice' ? qOptions : undefined,
+      correctAnswer: qType === 'multiple-choice' ? qCorrectIndex.toString() : qCorrectValue
     };
 
     saveQuestion(newQuestion);
@@ -148,6 +169,19 @@ export default function ManageQuestions() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Tipe Soal</Label>
+                    <Tabs value={qType} onValueChange={(val) => setQType(val as QuestionType)} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="multiple-choice" className="gap-2">
+                          <ListTodo className="h-4 w-4" /> Pilihan
+                        </TabsTrigger>
+                        <TabsTrigger value="numeric" className="gap-2">
+                          <Hash className="h-4 w-4" /> Angka
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Pertanyaan</Label>
@@ -157,31 +191,44 @@ export default function ManageQuestions() {
                     placeholder="Tuliskan pertanyaan di sini..." 
                   />
                 </div>
-                <div className="space-y-3">
-                  <Label>Opsi Jawaban (Tandai jawaban yang benar)</Label>
-                  {qOptions.map((opt, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant={qCorrect === idx ? 'default' : 'outline'}
-                        size="icon"
-                        onClick={() => setQCorrect(idx)}
-                        className="shrink-0"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </Button>
-                      <Input 
-                        value={opt} 
-                        onChange={(e) => {
-                          const newOpts = [...qOptions];
-                          newOpts[idx] = e.target.value;
-                          setQOptions(newOpts);
-                        }}
-                        placeholder={`Opsi ${idx + 1}`}
-                      />
-                    </div>
-                  ))}
-                </div>
+                
+                {qType === 'multiple-choice' ? (
+                  <div className="space-y-3">
+                    <Label>Opsi Jawaban (Tandai jawaban yang benar)</Label>
+                    {qOptions.map((opt, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant={qCorrectIndex === idx ? 'default' : 'outline'}
+                          size="icon"
+                          onClick={() => setQCorrectIndex(idx)}
+                          className="shrink-0"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
+                        <Input 
+                          value={opt} 
+                          onChange={(e) => {
+                            const newOpts = [...qOptions];
+                            newOpts[idx] = e.target.value;
+                            setQOptions(newOpts);
+                          }}
+                          placeholder={`Opsi ${idx + 1}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Jawaban Angka yang Benar</Label>
+                    <Input 
+                      type="number"
+                      value={qCorrectValue}
+                      onChange={(e) => setQCorrectValue(e.target.value)}
+                      placeholder="Masukkan angka jawaban..."
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
@@ -192,7 +239,7 @@ export default function ManageQuestions() {
         </header>
 
         <div className="flex-1 overflow-auto p-8">
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-8">
             {classes.map((cls) => {
               const classQuestions = questions.filter(q => q.classLevel === cls.name);
               return (
@@ -207,10 +254,17 @@ export default function ManageQuestions() {
                       </p>
                     ) : (
                       classQuestions.map((q) => (
-                        <Card key={q.id} className="hover:shadow-md transition-shadow">
+                        <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
+                          {q.type === 'numeric' && (
+                            <div className="absolute top-0 right-0 p-1">
+                              <Badge variant="secondary" className="text-[10px] uppercase font-bold">Angka</Badge>
+                            </div>
+                          )}
                           <CardContent className="p-6">
                             <div className="flex justify-between items-start gap-4">
-                              <p className="font-bold flex-1">{q.text}</p>
+                              <div className="flex-1">
+                                <p className="font-bold">{q.text}</p>
+                              </div>
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}>
                                   <Edit2 className="h-4 w-4" />
@@ -220,13 +274,22 @@ export default function ManageQuestions() {
                                 </Button>
                               </div>
                             </div>
-                            <div className="mt-4 grid grid-cols-2 gap-2">
-                              {q.options.map((opt, i) => (
-                                <div key={i} className={`text-xs p-2 rounded border ${i === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 border-gray-200'}`}>
-                                  {opt}
+                            
+                            {q.type === 'multiple-choice' ? (
+                              <div className="mt-4 grid grid-cols-2 gap-2">
+                                {q.options?.map((opt, i) => (
+                                  <div key={i} className={`text-xs p-2 rounded border ${i.toString() === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 border-gray-200'}`}>
+                                    {opt}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="mt-4">
+                                <div className="text-xs p-2 rounded border bg-green-50 border-green-200 text-green-700 font-bold inline-block">
+                                  Kunci: {q.correctAnswer}
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       ))

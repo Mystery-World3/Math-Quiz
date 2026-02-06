@@ -9,31 +9,32 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { getQuestions, saveSubmission } from '@/lib/storage';
-import { Question, ClassLevel } from '@/lib/types';
-import { CheckCircle2, ChevronRight, ChevronLeft, Send } from 'lucide-react';
+import { Question } from '@/lib/types';
+import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash } from 'lucide-react';
 
 function ExamContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const studentName = searchParams.get('name') || 'Student';
-  const classLevel = (searchParams.get('class') as ClassLevel) || 'Kelas 7';
+  const classLevel = searchParams.get('class') || 'Kelas 7';
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const allQuestions = getQuestions();
     const filtered = allQuestions.filter(q => q.classLevel === classLevel);
     setQuestions(filtered);
-    setAnswers(new Array(filtered.length).fill(-1));
+    setAnswers(new Array(filtered.length).fill(''));
   }, [classLevel]);
 
   const handleAnswerChange = (val: string) => {
     const newAnswers = [...answers];
-    newAnswers[currentIdx] = parseInt(val);
+    newAnswers[currentIdx] = val;
     setAnswers(newAnswers);
   };
 
@@ -53,7 +54,7 @@ function ExamContent() {
     setIsSubmitting(true);
     let score = 0;
     questions.forEach((q, idx) => {
-      if (answers[idx] === q.correctAnswer) {
+      if (answers[idx].trim() === q.correctAnswer.trim()) {
         score++;
       }
     });
@@ -72,7 +73,6 @@ function ExamContent() {
 
     saveSubmission(submission);
 
-    // Short delay for effect
     setTimeout(() => {
       localStorage.setItem('last_submission', JSON.stringify({
         submission,
@@ -120,37 +120,60 @@ function ExamContent() {
 
         <Card className="shadow-lg border-l-4 border-l-primary animate-in fade-in slide-in-from-right-4 duration-300">
           <CardHeader>
-            <CardTitle className="text-xl leading-relaxed">
-              {currentQuestion.text}
-            </CardTitle>
+            <div className="flex justify-between items-start gap-4">
+              <CardTitle className="text-xl leading-relaxed flex-1">
+                {currentQuestion.text}
+              </CardTitle>
+              {currentQuestion.type === 'numeric' && (
+                <Badge variant="outline" className="gap-1 text-xs py-1">
+                  <Hash className="h-3 w-3" /> Isian Angka
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <RadioGroup 
-              value={answers[currentIdx].toString()} 
-              onValueChange={handleAnswerChange}
-              className="space-y-3"
-            >
-              {currentQuestion.options.map((option, idx) => (
-                <div key={idx} className="flex items-center space-x-2">
-                  <RadioGroupItem value={idx.toString()} id={`opt-${idx}`} className="peer sr-only" />
-                  <Label
-                    htmlFor={`opt-${idx}`}
-                    className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${
-                      answers[currentIdx] === idx 
-                        ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm' 
-                        : 'border-border bg-white hover:border-primary/50'
-                    }`}
-                  >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      answers[currentIdx] === idx ? 'border-primary bg-primary' : 'border-muted-foreground'
-                    }`}>
-                      {answers[currentIdx] === idx && <div className="w-2 h-2 bg-white rounded-full" />}
-                    </div>
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+            {currentQuestion.type === 'multiple-choice' ? (
+              <RadioGroup 
+                value={answers[currentIdx]} 
+                onValueChange={handleAnswerChange}
+                className="space-y-3"
+              >
+                {currentQuestion.options?.map((option, idx) => (
+                  <div key={idx} className="flex items-center space-x-2">
+                    <RadioGroupItem value={idx.toString()} id={`opt-${idx}`} className="peer sr-only" />
+                    <Label
+                      htmlFor={`opt-${idx}`}
+                      className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${
+                        answers[currentIdx] === idx.toString() 
+                          ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm' 
+                          : 'border-border bg-white hover:border-primary/50'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        answers[currentIdx] === idx.toString() ? 'border-primary bg-primary' : 'border-muted-foreground'
+                      }`}>
+                        {answers[currentIdx] === idx.toString() && <div className="w-2 h-2 bg-white rounded-full" />}
+                      </div>
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            ) : (
+              <div className="space-y-4 pt-4">
+                <Label htmlFor="numeric-answer" className="text-lg font-bold">Masukkan Jawaban:</Label>
+                <Input 
+                  id="numeric-answer"
+                  type="number"
+                  placeholder="Ketik angka di sini..."
+                  className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary"
+                  value={answers[currentIdx]}
+                  onChange={(e) => handleAnswerChange(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-sm text-muted-foreground text-center italic">Pastikan angka yang kamu masukkan sudah benar.</p>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex justify-between border-t p-6 mt-4">
             <Button variant="outline" onClick={handlePrev} disabled={currentIdx === 0}>
@@ -161,21 +184,21 @@ function ExamContent() {
               <Button 
                 onClick={handleSubmit} 
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-8"
-                disabled={answers.some(a => a === -1) || isSubmitting}
+                disabled={answers.some(a => a === '') || isSubmitting}
               >
                 {isSubmitting ? 'Memproses...' : (
                   <>Selesai & Kumpulkan <Send className="ml-2 h-4 w-4" /></>
                 )}
               </Button>
             ) : (
-              <Button onClick={handleNext} disabled={answers[currentIdx] === -1}>
+              <Button onClick={handleNext} disabled={answers[currentIdx] === ''}>
                 Berikutnya <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             )}
           </CardFooter>
         </Card>
 
-        {answers.some(a => a === -1) && (
+        {answers.some(a => a === '') && (
           <p className="text-center text-sm text-muted-foreground italic">
             Harap isi semua jawaban sebelum mengumpulkan.
           </p>

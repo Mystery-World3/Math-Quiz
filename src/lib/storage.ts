@@ -17,16 +17,17 @@ const INITIAL_QUESTIONS: Question[] = [
   {
     id: '1',
     classLevel: 'Kelas 7',
+    type: 'multiple-choice',
     text: 'Siapa penemu gaya gravitasi?',
     options: ['Isaac Newton', 'Albert Einstein', 'Galileo Galilei', 'Nikola Tesla'],
-    correctAnswer: 0
+    correctAnswer: '0'
   },
   {
     id: '2',
     classLevel: 'Kelas 8',
+    type: 'numeric',
     text: 'Berapakah hasil dari 15 x 3?',
-    options: ['35', '40', '45', '50'],
-    correctAnswer: 2
+    correctAnswer: '45'
   }
 ];
 

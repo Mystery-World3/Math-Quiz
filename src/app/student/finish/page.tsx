@@ -5,11 +5,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { CheckCircle, XCircle, Trophy, RefreshCcw } from 'lucide-react';
+import { CheckCircle, XCircle, Trophy, RefreshCcw, Hash, ListTodo } from 'lucide-react';
 import { Submission, Question } from '@/lib/types';
 
 export default function StudentFinishPage() {
@@ -28,6 +27,22 @@ export default function StudentFinishPage() {
   if (!data) return null;
 
   const { submission, questions } = data;
+
+  const getDisplayAnswer = (q: Question, answer: string) => {
+    if (q.type === 'multiple-choice') {
+      const idx = parseInt(answer);
+      return q.options?.[idx] || 'Tidak Dijawab';
+    }
+    return answer || 'Tidak Dijawab';
+  };
+
+  const getDisplayCorrectAnswer = (q: Question) => {
+    if (q.type === 'multiple-choice') {
+      const idx = parseInt(q.correctAnswer);
+      return q.options?.[idx] || '';
+    }
+    return q.correctAnswer;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -51,7 +66,7 @@ export default function StudentFinishPage() {
             <div className="w-px bg-border h-16 self-center" />
             <div className="text-center">
               <span className="block text-5xl font-bold text-primary">
-                {submission.answers.filter((a, i) => a === questions[i].correctAnswer).length}
+                {submission.answers.filter((a, i) => a.trim() === questions[i].correctAnswer.trim()).length}
                 <span className="text-2xl text-muted-foreground">/{questions.length}</span>
               </span>
               <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Jawaban Benar</span>
@@ -69,11 +84,16 @@ export default function StudentFinishPage() {
             <ScrollArea className="h-[400px]">
               <div className="divide-y">
                 {questions.map((q, idx) => {
-                  const isCorrect = submission.answers[idx] === q.correctAnswer;
+                  const isCorrect = submission.answers[idx].trim() === q.correctAnswer.trim();
                   return (
                     <div key={q.id} className="p-6 space-y-3">
                       <div className="flex justify-between gap-4">
-                        <span className="font-bold text-muted-foreground">Soal {idx + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-muted-foreground">Soal {idx + 1}</span>
+                          <Badge variant="outline" className="text-[10px] uppercase h-5">
+                            {q.type === 'multiple-choice' ? <><ListTodo className="h-3 w-3 mr-1" /> Pilihan</> : <><Hash className="h-3 w-3 mr-1" /> Isian</>}
+                          </Badge>
+                        </div>
                         {isCorrect ? (
                           <Badge className="bg-green-100 text-green-700 border-green-200">
                             <CheckCircle className="h-3 w-3 mr-1" /> Benar
@@ -90,12 +110,12 @@ export default function StudentFinishPage() {
                           isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                         }`}>
                           <span className="block text-xs uppercase font-bold text-muted-foreground mb-1">Jawaban Kamu:</span>
-                          {q.options[submission.answers[idx]] || 'Tidak Dijawab'}
+                          <span className="font-bold">{getDisplayAnswer(q, submission.answers[idx])}</span>
                         </div>
                         {!isCorrect && (
                           <div className="p-3 rounded-lg border border-green-200 bg-green-50 text-sm">
                             <span className="block text-xs uppercase font-bold text-muted-foreground mb-1">Jawaban Benar:</span>
-                            {q.options[q.correctAnswer]}
+                            <span className="font-bold text-green-700">{getDisplayCorrectAnswer(q)}</span>
                           </div>
                         )}
                       </div>
