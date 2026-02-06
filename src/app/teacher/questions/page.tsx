@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -100,13 +101,14 @@ export default function ManageQuestions() {
       return;
     }
 
+    const isMC = qType === 'multiple-choice';
     const newQuestion: Question = {
       id: editingQuestion?.id || '',
       text: qText,
       type: qType,
       classLevel: qClass,
-      options: qType === 'multiple-choice' ? qOptions : undefined,
-      correctAnswer: qType === 'multiple-choice' ? qCorrectIndex.toString() : qCorrectValue
+      options: isMC ? qOptions : undefined,
+      correctAnswer: isMC ? qCorrectIndex.toString() : qCorrectValue
     };
 
     try {
@@ -116,6 +118,7 @@ export default function ManageQuestions() {
       resetForm();
       toast({ title: "Berhasil", description: "Soal telah disimpan." });
     } catch (error) {
+      console.error("Save error:", error);
       toast({ title: "Gagal", description: "Terjadi kesalahan saat menyimpan soal.", variant: "destructive" });
     }
   };
@@ -206,7 +209,12 @@ export default function ManageQuestions() {
                   ) : (
                     <div className="space-y-2">
                       <Label>Jawaban Benar</Label>
-                      <Input type={qType === 'numeric' ? 'number' : 'text'} value={qCorrectValue} onChange={e => setQCorrectValue(e.target.value)} placeholder="Ketik jawaban yang benar..." />
+                      <Input 
+                        type={qType === 'numeric' ? 'text' : 'text'} 
+                        value={qCorrectValue} 
+                        onChange={e => setQCorrectValue(e.target.value)} 
+                        placeholder={qType === 'numeric' ? "Masukkan angka..." : "Masukkan jawaban/simbol..."} 
+                      />
                     </div>
                   )}
                 </div>

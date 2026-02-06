@@ -15,9 +15,6 @@ import {
 } from 'firebase/firestore';
 import { Question, Submission, ClassLevelData } from './types';
 
-// These functions now act as wrappers for Firestore operations
-// In a real app, you might use hooks directly, but this maintains the existing API
-
 export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
   const colRef = collection(db, 'classes');
   const snapshot = await getDocs(colRef);
@@ -26,7 +23,7 @@ export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
 
 export async function saveClass(db: Firestore, classData: ClassLevelData) {
   const colRef = collection(db, 'classes');
-  if (classData.id && !classData.id.includes('.')) { // Simple check for existing ID
+  if (classData.id && classData.id.length > 5) {
     const docRef = doc(db, 'classes', classData.id);
     await updateDoc(docRef, { name: classData.name });
   } else {
@@ -54,10 +51,15 @@ export async function saveQuestion(db: Firestore, question: Question) {
   const colRef = collection(db, 'questions');
   const { id, ...data } = question;
   
+  // Bersihkan nilai undefined agar tidak menyebabkan error di Firestore
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  );
+  
   if (id && id.length > 5) {
-    await updateDoc(doc(db, 'questions', id), data as any);
+    await updateDoc(doc(db, 'questions', id), cleanData);
   } else {
-    await addDoc(colRef, data);
+    await addDoc(colRef, cleanData);
   }
 }
 
