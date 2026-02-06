@@ -77,15 +77,15 @@
   "firestore": {
     "/classes/{classId}": {
       "schema": "Class",
-      "description": "Collection of available class levels"
+      "description": "Collection of available class levels with full CRUD access"
     },
     "/questions/{questionId}": {
       "schema": "Question",
-      "description": "Collection of learning questions"
+      "description": "Collection of learning questions with full CRUD access"
     },
     "/submissions/{submissionId}": {
       "schema": "Submission",
-      "description": "Collection of student exam results with full management access"
+      "description": "Collection of student exam results with full administrative CRUD access (create, read, update, delete)"
     }
   }
 }

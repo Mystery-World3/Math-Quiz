@@ -36,15 +36,23 @@ export default function TeacherResults() {
   const [editName, setEditName] = useState('');
   const [editScore, setEditScore] = useState(0);
 
-  const handleDelete = (id: string, studentName: string) => {
-    if (!db || !id) return;
+  const handleDelete = async (id: string, studentName: string) => {
+    if (!db || !id) {
+      toast({ title: "Error", description: "ID data tidak valid.", variant: "destructive" });
+      return;
+    }
     
     if (confirm(`Apakah Anda yakin ingin menghapus hasil dari "${studentName}"?`)) {
-      deleteSubmission(db, id);
-      toast({ 
-        title: "Menghapus...", 
-        description: `Data "${studentName}" sedang diproses untuk dihapus.`,
-      });
+      try {
+        deleteSubmission(db, id);
+        toast({ 
+          title: "Menghapus...", 
+          description: `Data "${studentName}" sedang diproses untuk dihapus.`,
+        });
+      } catch (error) {
+        console.error("Delete error in component:", error);
+        toast({ title: "Gagal", description: "Terjadi kesalahan sistem saat menghapus.", variant: "destructive" });
+      }
     }
   };
 
