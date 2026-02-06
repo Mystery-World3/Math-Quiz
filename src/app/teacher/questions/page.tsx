@@ -11,20 +11,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
 import { Question, ClassLevelData, QuestionType } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2 } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore } from '@/firebase';
+import { generateAIQuestions } from '@/ai/flows/generate-questions-flow';
 
 export default function ManageQuestions() {
   const db = useFirestore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [classes, setClasses] = useState<ClassLevelData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
   const { toast } = useToast();
+
+  // AI Form state
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiCount, setAiCount] = useState(3);
 
   // Form state
   const [qText, setQText] = useState('');
@@ -100,16 +107,6 @@ export default function ManageQuestions() {
       return;
     }
 
-    if (qType === 'multiple-choice' && (qOptions.some(o => !o))) {
-      toast({ title: "Error", description: "Harap isi semua opsi jawaban.", variant: "destructive" });
-      return;
-    }
-
-    if ((qType === 'numeric' || qType === 'short-answer') && !qCorrectValue) {
-      toast({ title: "Error", description: "Harap isi jawaban yang benar.", variant: "destructive" });
-      return;
-    }
-
     const newQuestion: Question = {
       id: editingQuestion?.id || '',
       text: qText,
@@ -127,6 +124,35 @@ export default function ManageQuestions() {
       toast({ title: "Berhasil", description: "Soal telah disimpan." });
     } catch (error) {
       toast({ title: "Gagal", description: "Terjadi kesalahan saat menyimpan soal.", variant: "destructive" });
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiTopic || !qClass || !db) return;
+    setAiLoading(true);
+    try {
+      const result = await generateAIQuestions({
+        topic: aiTopic,
+        classLevel: qClass,
+        count: aiCount
+      });
+
+      for (const q of result.questions) {
+        await saveQuestion(db, {
+          ...q,
+          id: '',
+          classLevel: qClass
+        } as Question);
+      }
+
+      await loadData();
+      setIsAIModalOpen(false);
+      setAiTopic('');
+      toast({ title: "Berhasil", description: `${result.questions.length} soal AI telah ditambahkan.` });
+    } catch (error) {
+      toast({ title: "Gagal AI", description: "Gagal membuat soal dengan AI.", variant: "destructive" });
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -165,114 +191,111 @@ export default function ManageQuestions() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8">
           <h1 className="text-xl font-bold text-primary">Manajemen Soal LKPD</h1>
-          <Dialog open={isModalOpen} onOpenChange={(open) => {
-            setIsModalOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="font-bold gap-2">
-                <Plus className="h-4 w-4" /> Tambah Soal
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editingQuestion ? 'Edit Soal' : 'Tambah Soal Baru'}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-2">
+            <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="font-bold gap-2 border-primary text-primary hover:bg-primary/5">
+                  <Sparkles className="h-4 w-4" /> Buat dengan AI
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>AI Question Generator</DialogTitle>
+                  <DialogDescription>Masukkan topik untuk membuat soal secara otomatis.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Jenjang Kelas</Label>
-                    <Select value={qClass} onValueChange={(val) => setQClass(val)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih kelas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classes.map(c => (
-                          <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Topik Pembelajaran</Label>
+                    <Input value={aiTopic} onChange={e => setAiTopic(e.target.value)} placeholder="Misal: Penjumlahan Pecahan, Sel Hewan..." />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Tipe Soal</Label>
-                    <Tabs value={qType} onValueChange={(val) => setQType(val as QuestionType)} className="w-full">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="multiple-choice" className="gap-1 text-xs px-1">
-                          <ListTodo className="h-3 w-3" /> Pilihan
-                        </TabsTrigger>
-                        <TabsTrigger value="numeric" className="gap-1 text-xs px-1">
-                          <Hash className="h-3 w-3" /> Angka
-                        </TabsTrigger>
-                        <TabsTrigger value="short-answer" className="gap-1 text-xs px-1">
-                          <Type className="h-3 w-3" /> Isian
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Kelas</Label>
+                      <Select value={qClass} onValueChange={setQClass}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Jumlah Soal</Label>
+                      <Input type="number" value={aiCount} onChange={e => setAiCount(parseInt(e.target.value))} min={1} max={10} />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Pertanyaan</Label>
-                  <Input 
-                    value={qText} 
-                    onChange={(e) => setQText(e.target.value)} 
-                    placeholder="Tuliskan pertanyaan di sini... Gunakan simbol jika perlu (√, π, ±)" 
-                  />
-                </div>
-                
-                {qType === 'multiple-choice' ? (
-                  <div className="space-y-3">
-                    <Label>Opsi Jawaban (Tandai jawaban yang benar)</Label>
-                    {qOptions.map((opt, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant={qCorrectIndex === idx ? 'default' : 'outline'}
-                          size="icon"
-                          onClick={() => setQCorrectIndex(idx)}
-                          className="shrink-0"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
-                        <Input 
-                          value={opt} 
-                          onChange={(e) => {
-                            const newOpts = [...qOptions];
-                            newOpts[idx] = e.target.value;
-                            setQOptions(newOpts);
-                          }}
-                          placeholder={`Opsi ${idx + 1}`}
-                        />
-                      </div>
-                    ))}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAIModalOpen(false)}>Batal</Button>
+                  <Button onClick={handleAIGenerate} disabled={aiLoading || !aiTopic}>
+                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    Generate Soal
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button className="font-bold gap-2">
+                  <Plus className="h-4 w-4" /> Tambah Manual
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{editingQuestion ? 'Edit Soal' : 'Tambah Soal Baru'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Jenjang Kelas</Label>
+                      <Select value={qClass} onValueChange={setQClass}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipe Soal</Label>
+                      <Tabs value={qType} onValueChange={(val) => setQType(val as QuestionType)} className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="multiple-choice"><ListTodo className="h-3 w-3" /></TabsTrigger>
+                          <TabsTrigger value="numeric"><Hash className="h-3 w-3" /></TabsTrigger>
+                          <TabsTrigger value="short-answer"><Type className="h-3 w-3" /></TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
                   </div>
-                ) : (
                   <div className="space-y-2">
-                    <Label>Jawaban Benar</Label>
-                    <Input 
-                      type={qType === 'numeric' ? 'number' : 'text'}
-                      value={qCorrectValue}
-                      onChange={(e) => setQCorrectValue(e.target.value)}
-                      placeholder={qType === 'numeric' ? "Masukkan angka..." : "Masukkan jawaban teks/simbol..."}
-                    />
-                    <p className="text-xs text-muted-foreground italic">
-                      {qType === 'short-answer' ? 'Siswa harus mengetikkan jawaban yang sama persis (case-sensitive).' : 'Hanya menerima input angka.'}
-                    </p>
+                    <Label>Pertanyaan</Label>
+                    <Input value={qText} onChange={e => setQText(e.target.value)} placeholder="Tuliskan pertanyaan..." />
                   </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                <Button onClick={handleSave}>Simpan Soal</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  {qType === 'multiple-choice' ? (
+                    <div className="space-y-3">
+                      {qOptions.map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Button variant={qCorrectIndex === idx ? 'default' : 'outline'} size="icon" onClick={() => setQCorrectIndex(idx)}>
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                          <Input value={opt} onChange={e => { const n = [...qOptions]; n[idx] = e.target.value; setQOptions(n); }} placeholder={`Opsi ${idx + 1}`} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Jawaban Benar</Label>
+                      <Input type={qType === 'numeric' ? 'number' : 'text'} value={qCorrectValue} onChange={e => setQCorrectValue(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
+                  <Button onClick={handleSave}>Simpan Soal</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto p-8">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
             <div className="grid grid-cols-1 gap-8">
               {classes.map((cls) => {
@@ -283,52 +306,22 @@ export default function ManageQuestions() {
                       {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
                     </h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {classQuestions.length === 0 ? (
-                        <p className="text-sm italic text-muted-foreground p-4 bg-white rounded-lg border border-dashed">
-                          Belum ada soal untuk {cls.name}.
-                        </p>
-                      ) : (
-                        classQuestions.map((q) => (
-                          <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-1">
-                              <Badge variant="secondary" className="text-[10px] uppercase font-bold">
-                                {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
-                              </Badge>
-                            </div>
-                            <CardContent className="p-6">
-                              <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                  <p className="font-bold">{q.text}</p>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                      {classQuestions.map((q) => (
+                        <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden">
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1"><p className="font-bold">{q.text}</p></div>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}><Edit2 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4" /></Button>
                               </div>
-                              
-                              {q.type === 'multiple-choice' ? (
-                                <div className="mt-4 grid grid-cols-2 gap-2">
-                                  {q.options?.map((opt, i) => (
-                                    <div key={i} className={`text-xs p-2 rounded border ${i.toString() === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 border-gray-200'}`}>
-                                      {opt}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="mt-4">
-                                  <div className="text-xs p-2 rounded border bg-green-50 border-green-200 text-green-700 font-bold inline-block">
-                                    Kunci: {q.correctAnswer}
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))
-                      )}
+                            </div>
+                            <Badge variant="secondary" className="mt-2 text-[10px] uppercase font-bold">
+                              {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
+                            </Badge>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </div>
                 );
