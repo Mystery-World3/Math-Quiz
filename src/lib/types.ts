@@ -21,6 +21,7 @@ export interface Submission {
   classLevel: string;
   score: number;
   totalQuestions: number;
-  answers: string[]; // Menyimpan jawaban siswa sebagai string
+  answers: string[]; // Menyimpan jawaban mentah siswa
+  gradingResults?: boolean[]; // Hasil koreksi (true = benar, false = salah) dari AI/Sistem
   timestamp: string;
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -9,19 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, XCircle, Trophy, RefreshCcw, Hash, ListTodo, Type } from 'lucide-react';
 import { Submission, Question } from '@/lib/types';
-
-/**
- * Normalisasi jawaban untuk perbandingan yang lebih fleksibel (Review Page).
- */
-function normalizeText(text: string): string {
-  if (!text) return "";
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/^[a-z]\s*[=]/g, '')
-    .replace(/(meter|m|cm|kg|gram|gr|km|mm|liter|l|°)$/g, '')
-    .trim();
-}
 
 export default function StudentFinishPage() {
   const router = useRouter();
@@ -60,14 +48,6 @@ export default function StudentFinishPage() {
     return q.correctAnswer;
   };
 
-  const checkIsCorrect = (q: Question, answer: string) => {
-    if (!answer) return false;
-    if (q.type === 'multiple-choice') {
-      return answer.trim() === q.correctAnswer.trim();
-    }
-    return normalizeText(answer) === normalizeText(q.correctAnswer);
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="p-6 max-w-5xl mx-auto w-full">
@@ -90,7 +70,7 @@ export default function StudentFinishPage() {
             <div className="w-px bg-border h-16 self-center" />
             <div className="text-center">
               <span className="block text-5xl font-bold text-primary">
-                {submission.answers.filter((a, i) => checkIsCorrect(questions[i], a)).length}
+                {submission.gradingResults?.filter(r => r === true).length || 0}
                 <span className="text-2xl text-muted-foreground">/{questions.length}</span>
               </span>
               <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Jawaban Benar</span>
@@ -101,14 +81,14 @@ export default function StudentFinishPage() {
         <Card className="shadow-lg">
           <CardHeader className="bg-primary/5">
             <CardTitle className="text-lg flex items-center gap-2">
-              Review Koreksi Jawaban
+              Review Koreksi Jawaban (Cerdas AI)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[400px]">
               <div className="divide-y">
                 {questions.map((q, idx) => {
-                  const isCorrect = checkIsCorrect(q, submission.answers[idx]);
+                  const isCorrect = submission.gradingResults?.[idx] ?? false;
                   return (
                     <div key={q.id || idx} className="p-6 space-y-3">
                       <div className="flex justify-between gap-4">

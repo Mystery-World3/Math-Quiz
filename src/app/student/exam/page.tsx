@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
@@ -10,30 +11,19 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, ListTodo } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, Send, Hash, Type, ListTodo, Loader2 } from 'lucide-react';
 import { getQuestions, saveSubmission } from '@/lib/storage';
 import { Question } from '@/lib/types';
 import { useFirestore } from '@/firebase';
 import { SymbolKeyboard } from '@/components/SymbolKeyboard';
-
-/**
- * Normalisasi jawaban untuk perbandingan yang lebih fleksibel.
- * Menghapus spasi, mengubah ke huruf kecil, dan membuang awalan 'x=' atau satuan.
- */
-function normalizeText(text: string): string {
-  if (!text) return "";
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, '') // Hapus semua spasi
-    .replace(/^[a-z]\s*[=]/g, '') // Hapus awalan "x=", "y=", "z="
-    .replace(/(meter|m|cm|kg|gram|gr|km|mm|liter|l|°)$/g, '') // Hapus satuan umum di akhir
-    .trim();
-}
+import { evaluateExamAI } from '@/ai/flows/evaluate-exam-flow';
+import { useToast } from '@/hooks/use-toast';
 
 function ExamContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const db = useFirestore();
+  const { toast } = useToast();
   const studentName = searchParams.get('name') || 'Student';
   const classLevel = searchParams.get('class') || 'Kelas 7';
 
@@ -85,44 +75,55 @@ function ExamContent() {
   const handleSubmit = async () => {
     if (!db) return;
     setIsSubmitting(true);
-    let scoreCount = 0;
     
-    questions.forEach((q, idx) => {
-      const studentRaw = answers[idx] || '';
-      const teacherRaw = q.correctAnswer || '';
-      
-      if (q.type === 'multiple-choice') {
-        if (studentRaw === teacherRaw) scoreCount++;
-      } else {
-        // Gunakan normalisasi untuk Isian Angka dan Isian Singkat
-        if (normalizeText(studentRaw) === normalizeText(teacherRaw)) {
-          scoreCount++;
-        }
-      }
-    });
+    try {
+      // Panggil AI Evaluator untuk koreksi cerdas
+      const evaluation = await evaluateExamAI({
+        questions: questions.map(q => ({
+          text: q.text,
+          type: q.type,
+          options: q.options,
+          correctAnswer: q.correctAnswer
+        })),
+        answers
+      });
 
-    const finalScore = questions.length > 0 ? Math.round((scoreCount / questions.length) * 100) : 0;
+      const submissionData = {
+        studentName,
+        classLevel,
+        score: evaluation.totalScore,
+        totalQuestions: questions.length,
+        answers,
+        gradingResults: evaluation.gradingResults,
+        timestamp: new Date().toISOString()
+      };
 
-    const submissionData = {
-      studentName,
-      classLevel,
-      score: finalScore,
-      totalQuestions: questions.length,
-      answers,
-      timestamp: new Date().toISOString()
-    };
+      await saveSubmission(db, submissionData);
 
-    saveSubmission(db, submissionData);
-
-    localStorage.setItem('last_submission', JSON.stringify({
-      submission: submissionData,
-      questions
-    }));
-    router.push('/student/finish');
+      localStorage.setItem('last_submission', JSON.stringify({
+        submission: submissionData,
+        questions
+      }));
+      router.push('/student/finish');
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Gagal Mengumpulkan",
+        description: "Terjadi kesalahan saat mengoreksi jawaban. Silakan coba lagi.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Memuat soal...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="font-medium text-muted-foreground">Menyiapkan Lembar Kerja...</p>
+      </div>
+    );
   }
 
   if (questions.length === 0) {
@@ -209,7 +210,7 @@ function ExamContent() {
                   <Label htmlFor="text-answer" className="text-lg font-bold">Jawaban Kamu:</Label>
                   <Input 
                     id="text-answer"
-                    placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban..."}
+                    placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban (bisa menyertakan langkah pengerjaan)..."}
                     className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary shadow-inner"
                     value={answers[currentIdx]}
                     onChange={(e) => handleAnswerChange(e.target.value)}
@@ -227,15 +228,17 @@ function ExamContent() {
             {currentIdx === questions.length - 1 ? (
               <Button 
                 onClick={handleSubmit} 
-                className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-8"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-8 h-12"
                 disabled={answers[currentIdx] === '' || isSubmitting}
               >
-                {isSubmitting ? 'Memproses...' : (
+                {isSubmitting ? (
+                  <>Mengkoreksi dengan AI... <Loader2 className="ml-2 h-4 w-4 animate-spin" /></>
+                ) : (
                   <>Selesai & Kumpulkan <Send className="ml-2 h-4 w-4" /></>
                 )}
               </Button>
             ) : (
-              <Button onClick={handleNext} disabled={answers[currentIdx] === ''}>
+              <Button onClick={handleNext} disabled={answers[currentIdx] === ''} className="h-12">
                 Berikutnya <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             )}
