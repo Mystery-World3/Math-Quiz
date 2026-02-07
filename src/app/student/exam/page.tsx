@@ -18,6 +18,7 @@ import { useFirestore } from '@/firebase';
 import { SymbolKeyboard } from '@/components/SymbolKeyboard';
 import { evaluateExamAI } from '@/ai/flows/evaluate-exam-flow';
 import { useToast } from '@/hooks/use-toast';
+import { ModeToggle } from '@/components/ModeToggle';
 
 function ExamContent() {
   const router = useRouter();
@@ -77,7 +78,6 @@ function ExamContent() {
     setIsSubmitting(true);
     
     try {
-      // Panggil AI Evaluator untuk koreksi cerdas
       const evaluation = await evaluateExamAI({
         questions: questions.map(q => ({
           text: q.text,
@@ -143,12 +143,15 @@ function ExamContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="p-4 bg-white shadow-sm border-b sticky top-0 z-10">
+      <header className="p-4 bg-card shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-5xl mx-auto w-full flex justify-between items-center">
           <Logo />
-          <div className="flex flex-col items-end">
-            <span className="font-bold text-primary">{studentName}</span>
-            <span className="text-xs text-muted-foreground">{classLevel}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <span className="font-bold text-primary">{studentName}</span>
+              <span className="text-xs text-muted-foreground">{classLevel}</span>
+            </div>
+            <ModeToggle />
           </div>
         </div>
       </header>
@@ -188,8 +191,8 @@ function ExamContent() {
                       htmlFor={`opt-${idx}`}
                       className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${
                         answers[currentIdx] === idx.toString() 
-                          ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm' 
-                          : 'border-border bg-white hover:border-primary/50'
+                          ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm' 
+                          : 'border-border bg-card hover:border-primary/50'
                       }`}
                     >
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
@@ -211,7 +214,7 @@ function ExamContent() {
                   <Input 
                     id="text-answer"
                     placeholder={currentQuestion.type === 'numeric' ? "Ketik angka..." : "Ketik jawaban (bisa menyertakan langkah pengerjaan)..."}
-                    className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary shadow-inner"
+                    className="h-16 text-2xl text-center font-bold border-2 focus-visible:ring-primary shadow-inner bg-card"
                     value={answers[currentIdx]}
                     onChange={(e) => handleAnswerChange(e.target.value)}
                     autoFocus

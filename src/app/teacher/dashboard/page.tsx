@@ -14,6 +14,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { collection, query, orderBy } from 'firebase/firestore';
+import { ModeToggle } from '@/components/ModeToggle';
 
 export default function TeacherDashboard() {
   const db = useFirestore();
@@ -52,8 +53,8 @@ export default function TeacherDashboard() {
   }, [safeSubmissions]);
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+    <div className="min-h-screen flex bg-background transition-colors duration-300">
+      <aside className="w-64 bg-card border-r hidden md:flex flex-col">
         <div className="p-6">
           <Logo />
         </div>
@@ -79,7 +80,11 @@ export default function TeacherDashboard() {
             </Button>
           </Link>
         </nav>
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-4">
+          <div className="px-4 py-2 flex justify-between items-center bg-muted/50 rounded-lg">
+            <span className="text-xs font-bold text-muted-foreground">Mode Tema</span>
+            <ModeToggle />
+          </div>
           <Link href="/">
             <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600">
               <LogOut className="mr-2 h-4 w-4" /> Logout
@@ -89,8 +94,11 @@ export default function TeacherDashboard() {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-8">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-8">
           <h1 className="text-xl font-bold text-primary">Overview Nilai Siswa (Real-time)</h1>
+          <div className="md:hidden">
+            <ModeToggle />
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto p-8 space-y-8">
@@ -111,7 +119,7 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-card">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Rata-rata Skor</p>
@@ -121,7 +129,7 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-card">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Peserta Terakhir</p>
@@ -133,7 +141,7 @@ export default function TeacherDashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="bg-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Distribusi Nilai</CardTitle>
               </CardHeader>
@@ -155,7 +163,7 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Daftar Nilai Terbaru</CardTitle>
                 <Link href="/teacher/results">

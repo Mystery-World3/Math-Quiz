@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -16,6 +17,7 @@ import { GraduationCap, ArrowRight, Loader2 } from 'lucide-react';
 import { getClasses } from '@/lib/storage';
 import { ClassLevelData } from '@/lib/types';
 import { useFirestore } from '@/firebase';
+import { ModeToggle } from '@/components/ModeToggle';
 
 export default function LandingPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
@@ -47,11 +49,14 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col transition-colors duration-300">
       <header className="p-6 flex justify-between items-center max-w-7xl mx-auto w-full">
         <Logo />
-        <div className="text-sm text-muted-foreground italic hidden sm:block">
-          Interactive Digital Learning Platform
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground italic hidden sm:block">
+            Interactive Digital Learning Platform
+          </div>
+          <ModeToggle />
         </div>
       </header>
 
@@ -107,7 +112,7 @@ export default function LandingPage() {
         </Card>
       </main>
 
-      <footer className="p-8 text-center text-sm text-muted-foreground bg-white/50">
+      <footer className="p-8 text-center text-sm text-muted-foreground bg-white/5 dark:bg-black/20">
         &copy; {new Date().getFullYear()} LearnScape - LKPD DIGITAL INTERAKTIF. All rights reserved.
       </footer>
     </div>
