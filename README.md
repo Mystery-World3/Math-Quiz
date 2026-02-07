@@ -38,14 +38,6 @@ Jika Anda ingin mencoba aplikasi ini di komputer Anda sendiri:
 3.  **Jalankan aplikasi:**
     Cukup buka file `index.html` langsung di browser Anda.
 
----
-
-## 📸 Tampilan Aplikasi
-
-> *Tips: Tambahkan screenshot atau GIF demo aplikasi Anda di sini untuk menarik minat pengunjung!*
-
----
-
 ## 🤝 Kontribusi
 
 Kontribusi sangat dihargai! Jika Anda ingin meningkatkan proyek ini, silakan:
