@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore } from '@/firebase';
 import { SymbolKeyboard } from '@/components/SymbolKeyboard';
+import { ModeToggle } from '@/components/ModeToggle';
 
 export default function ManageQuestions() {
   const db = useFirestore();
@@ -133,7 +134,7 @@ export default function ManageQuestions() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+      <aside className="w-64 bg-card border-r hidden md:flex flex-col">
         <div className="p-6">
           <Logo />
         </div>
@@ -159,7 +160,11 @@ export default function ManageQuestions() {
             </Button>
           </Link>
         </nav>
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-4">
+          <div className="px-4 py-2 flex justify-between items-center bg-muted/50 rounded-lg">
+            <span className="text-xs font-bold text-muted-foreground">Tema</span>
+            <ModeToggle />
+          </div>
           <Link href="/">
             <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600">
               <LogOut className="mr-2 h-4 w-4" /> Logout
@@ -169,9 +174,9 @@ export default function ManageQuestions() {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-8">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-8">
           <h1 className="text-xl font-bold text-primary">Manajemen Soal LKPD</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-4 items-center">
             <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button className="font-bold gap-2">
@@ -239,7 +244,7 @@ export default function ManageQuestions() {
                               />
                             </div>
                             <div className="flex flex-wrap gap-1 pl-12">
-                               {['x₁', 'x₂', '²', '³', '√', 'π'].map(s => (
+                               {['x', 'x₁', 'x₂', '²', '³', '√', 'π'].map(s => (
                                  <Button key={s} variant="ghost" size="sm" className="h-7 text-xs" onClick={() => insertSymbolToOption(s, idx)}>{s}</Button>
                                ))}
                             </div>
@@ -266,16 +271,19 @@ export default function ManageQuestions() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            <div className="md:hidden">
+              <ModeToggle />
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-4 md:p-8">
           {loading ? (
             <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 gap-8 max-w-5xl mx-auto">
               {classes.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-xl border-2 border-dashed">
+                <div className="text-center py-20 bg-card rounded-xl border-2 border-dashed">
                   <p className="text-muted-foreground italic">Belum ada kelas. Silakan buat kelas terlebih dahulu di menu Kelola Kelas.</p>
                 </div>
               ) : (
@@ -283,8 +291,11 @@ export default function ManageQuestions() {
                   const classQuestions = questions.filter(q => q.classLevel === cls.name);
                   return (
                     <div key={cls.id} className="space-y-4">
-                      <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center gap-2">
-                        {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
+                      <h2 className="text-lg font-bold text-muted-foreground border-b pb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {cls.name} <Badge className="bg-primary/10 text-primary border-none">{classQuestions.length}</Badge>
+                        </div>
+                        {!cls.isActive && <Badge variant="destructive" className="text-[10px]">Nonaktif</Badge>}
                       </h2>
                       {classQuestions.length === 0 ? (
                         <p className="text-sm text-muted-foreground italic px-2">Belum ada soal untuk kelas ini.</p>
@@ -295,7 +306,7 @@ export default function ManageQuestions() {
                               <CardContent className="p-6">
                                 <div className="flex justify-between items-start gap-4">
                                   <div className="flex-1"><p className="font-bold leading-relaxed">{q.text}</p></div>
-                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(q)}><Edit2 className="h-4 w-4" /></Button>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDelete(q.id)}><Trash2 className="h-4 w-4" /></Button>
                                   </div>
