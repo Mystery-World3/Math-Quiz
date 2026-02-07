@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -10,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { deleteSubmission, updateSubmission } from '@/lib/storage';
-import { Submission } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { deleteSubmission, updateSubmission, getClasses } from '@/lib/storage';
+import { Submission, ClassLevelData } from '@/lib/types';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -23,7 +23,8 @@ import {
   Loader2, 
   Printer, 
   Search,
-  Menu
+  Menu,
+  Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useFirestore, useCollection } from '@/firebase';
@@ -37,6 +38,8 @@ export default function TeacherResults() {
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string>('all');
+  const [classes, setClasses] = useState<ClassLevelData[]>([]);
   
   const submissionsQuery = useMemo(() => {
     if (!db) return null;
@@ -49,6 +52,16 @@ export default function TeacherResults() {
   const [editingResult, setEditingResult] = useState<Submission | null>(null);
   const [editName, setEditName] = useState('');
   const [editScore, setEditScore] = useState(0);
+
+  useEffect(() => {
+    async function loadClasses() {
+      if (db) {
+        const data = await getClasses(db);
+        setClasses(data);
+      }
+    }
+    loadClasses();
+  }, [db]);
 
   const handleDelete = async (id: string, studentName: string) => {
     if (!db || !id) return;
@@ -86,11 +99,12 @@ export default function TeacherResults() {
 
   const filteredSubmissions = useMemo(() => {
     if (!submissions) return [];
-    return submissions.filter(s => 
-      (s.studentName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (s.classLevel?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-    );
-  }, [submissions, searchTerm]);
+    return submissions.filter(s => {
+      const matchSearch = (s.studentName?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+      const matchClass = selectedClass === 'all' || s.classLevel === selectedClass;
+      return matchSearch && matchClass;
+    });
+  }, [submissions, searchTerm, selectedClass]);
 
   const handlePrint = () => {
     window.print();
@@ -123,7 +137,6 @@ export default function TeacherResults() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Desktop Sidebar */}
       <aside className="w-64 bg-card border-r hidden md:flex flex-col no-print">
         <div className="p-6">
           <Logo />
@@ -171,20 +184,42 @@ export default function TeacherResults() {
         <div className="flex-1 overflow-auto p-4 md:p-8">
           <div className="hidden print-only mb-8">
             <h1 className="text-2xl font-bold text-center">LAPORAN HASIL UJIAN SISWA</h1>
-            <p className="text-center text-muted-foreground">Dicetak pada: {format(new Date(), 'dd MMMM yyyy, HH:mm')}</p>
+            <p className="text-center font-bold text-lg mt-2">
+              {selectedClass === 'all' ? 'Semua Jenjang Kelas' : `Jenjang: ${selectedClass}`}
+            </p>
+            <p className="text-center text-muted-foreground mt-1">Dicetak pada: {format(new Date(), 'dd MMMM yyyy, HH:mm')}</p>
           </div>
 
           <Card className="card shadow-md">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0 pb-7 no-print">
+            <CardHeader className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0 pb-7 no-print">
               <CardTitle className="text-lg">Database Hasil Ujian</CardTitle>
-              <div className="relative w-full max-w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Cari nama atau kelas..." 
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Cari nama siswa..." 
+                    className="pl-10 h-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-2 bg-muted/50 px-3 rounded-lg border h-10">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger className="w-full sm:w-[160px] border-none bg-transparent focus:ring-0 h-8">
+                      <SelectValue placeholder="Semua Kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Kelas</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" size="icon" className="sm:hidden" onClick={handlePrint}>
+                  <Printer className="h-4 w-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6">
@@ -232,7 +267,7 @@ export default function TeacherResults() {
                       {filteredSubmissions.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-10 italic text-muted-foreground text-sm">
-                            Tidak ada data pengerjaan ditemukan.
+                            Tidak ada data pengerjaan ditemukan untuk filter ini.
                           </TableCell>
                         </TableRow>
                       )}

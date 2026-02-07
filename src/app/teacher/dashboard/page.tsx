@@ -1,14 +1,14 @@
-
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Submission } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Submission, ClassLevelData } from '@/lib/types';
 import { 
   Users, 
   FileText, 
@@ -19,7 +19,7 @@ import {
   Loader2, 
   BarChart3, 
   Menu,
-  X 
+  Filter
 } from 'lucide-react';
 import { useFirestore, useCollection } from '@/firebase';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Cell } from "recharts";
@@ -27,10 +27,12 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { collection, query, orderBy } from 'firebase/firestore';
 import { ModeToggle } from '@/components/ModeToggle';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { getClasses } from '@/lib/storage';
 
 export default function TeacherDashboard() {
   const db = useFirestore();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<string>('all');
+  const [classes, setClasses] = useState<ClassLevelData[]>([]);
   
   const submissionsQuery = useMemo(() => {
     if (!db) return null;
@@ -39,7 +41,21 @@ export default function TeacherDashboard() {
 
   const { data: submissions, loading } = useCollection<Submission>(submissionsQuery);
 
-  const safeSubmissions = submissions || [];
+  useEffect(() => {
+    async function loadClasses() {
+      if (db) {
+        const data = await getClasses(db);
+        setClasses(data);
+      }
+    }
+    loadClasses();
+  }, [db]);
+
+  const filteredSubmissions = useMemo(() => {
+    if (!submissions) return [];
+    if (selectedClass === 'all') return submissions;
+    return submissions.filter(s => s.classLevel === selectedClass);
+  }, [submissions, selectedClass]);
 
   const chartData = useMemo(() => {
     const ranges = [
@@ -49,7 +65,7 @@ export default function TeacherDashboard() {
       { name: '86-100', count: 0, color: '#10b981' },
     ];
     
-    safeSubmissions.forEach(s => {
+    filteredSubmissions.forEach(s => {
       if (s.score <= 50) ranges[0].count++;
       else if (s.score <= 70) ranges[1].count++;
       else if (s.score <= 85) ranges[2].count++;
@@ -57,13 +73,13 @@ export default function TeacherDashboard() {
     });
     
     return ranges;
-  }, [safeSubmissions]);
+  }, [filteredSubmissions]);
 
   const averageScore = useMemo(() => {
-    if (safeSubmissions.length === 0) return 0;
-    const total = safeSubmissions.reduce((acc, s) => acc + s.score, 0);
-    return Math.round(total / safeSubmissions.length);
-  }, [safeSubmissions]);
+    if (filteredSubmissions.length === 0) return 0;
+    const total = filteredSubmissions.reduce((acc, s) => acc + s.score, 0);
+    return Math.round(total / filteredSubmissions.length);
+  }, [filteredSubmissions]);
 
   const NavContent = () => (
     <nav className="flex-1 p-4 space-y-2">
@@ -92,7 +108,6 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-screen flex bg-background transition-colors duration-300">
-      {/* Sidebar Desktop */}
       <aside className="w-64 bg-card border-r hidden md:flex flex-col">
         <div className="p-6">
           <Logo />
@@ -136,12 +151,41 @@ export default function TeacherDashboard() {
             </Sheet>
             <h1 className="text-lg md:text-xl font-bold text-primary truncate">Overview Nilai</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 bg-muted/30 p-1 rounded-lg border">
+              <Filter className="h-4 w-4 ml-2 text-muted-foreground" />
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-[180px] h-8 border-none bg-transparent focus:ring-0">
+                  <SelectValue placeholder="Pilih Kelas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kelas</SelectItem>
+                  {classes.map(c => (
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <ModeToggle />
           </div>
         </header>
 
         <div className="flex-1 overflow-auto p-4 md:p-8 space-y-6 md:space-y-8">
+          {/* Mobile Filter */}
+          <div className="sm:hidden w-full">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter Kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kelas</SelectItem>
+                {classes.map(c => (
+                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {loading && (
             <div className="flex items-center gap-2 text-primary font-medium">
               <Loader2 className="h-4 w-4 animate-spin" /> Memperbarui data...
@@ -153,7 +197,7 @@ export default function TeacherDashboard() {
               <CardContent className="p-5 md:p-6 flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm opacity-80">Total Peserta</p>
-                  <p className="text-3xl md:text-4xl font-bold">{safeSubmissions.length}</p>
+                  <p className="text-3xl md:text-4xl font-bold">{filteredSubmissions.length}</p>
                 </div>
                 <Users className="h-8 w-8 md:h-10 md:w-10 opacity-30" />
               </CardContent>
@@ -173,7 +217,7 @@ export default function TeacherDashboard() {
               <CardContent className="p-5 md:p-6 flex items-center justify-between w-full">
                 <div>
                   <p className="text-xs md:text-sm text-muted-foreground">Peserta Terakhir</p>
-                  <p className="text-base md:text-lg font-bold truncate max-w-[120px] md:max-w-[150px]">{safeSubmissions[0]?.studentName || '-'}</p>
+                  <p className="text-base md:text-lg font-bold truncate max-w-[120px] md:max-w-[150px]">{filteredSubmissions[0]?.studentName || '-'}</p>
                 </div>
                 <ChevronRight className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
               </CardContent>
@@ -183,7 +227,7 @@ export default function TeacherDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-card shadow-md">
               <CardHeader>
-                <CardTitle className="text-base md:text-lg">Distribusi Nilai</CardTitle>
+                <CardTitle className="text-base md:text-lg">Distribusi Nilai {selectedClass !== 'all' ? `- ${selectedClass}` : ''}</CardTitle>
               </CardHeader>
               <CardContent className="h-[250px] md:h-[300px] w-full">
                 <ChartContainer config={{ count: { label: "Jumlah Siswa", color: "hsl(var(--primary))" } }}>
@@ -220,15 +264,15 @@ export default function TeacherDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {safeSubmissions.slice(0, 5).map((s) => (
+                    {filteredSubmissions.slice(0, 5).map((s) => (
                       <TableRow key={s.id}>
                         <TableCell className="font-bold pl-4 text-sm truncate max-w-[100px]">{s.studentName}</TableCell>
                         <TableCell className="text-sm"><Badge variant="outline" className="whitespace-nowrap">{s.classLevel}</Badge></TableCell>
                         <TableCell className={`font-bold pr-4 text-sm ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>{s.score}</TableCell>
                       </TableRow>
                     ))}
-                    {safeSubmissions.length === 0 && !loading && (
-                      <TableRow><TableCell colSpan={3} className="text-center py-4 italic text-muted-foreground text-sm">Belum ada data</TableCell></TableRow>
+                    {filteredSubmissions.length === 0 && !loading && (
+                      <TableRow><TableCell colSpan={3} className="text-center py-4 italic text-muted-foreground text-sm">Belum ada data untuk filter ini</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
