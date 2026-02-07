@@ -50,31 +50,31 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
-      <header className="p-6 flex justify-between items-center max-w-7xl mx-auto w-full">
+      <header className="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full">
         <Logo />
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground italic hidden sm:block">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="text-xs md:text-sm text-muted-foreground italic hidden sm:block">
             Interactive Digital Learning Platform
           </div>
           <ModeToggle />
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
-        <div className="text-center space-y-4 max-w-2xl">
-          <h1 className="text-4xl md:text-6xl font-headline font-bold text-primary leading-tight">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 gap-6 md:gap-8">
+        <div className="text-center space-y-3 md:space-y-4 max-w-2xl">
+          <h1 className="text-3xl md:text-6xl font-headline font-bold text-primary leading-tight px-2">
             Belajar Jadi Lebih <span className="text-accent">Menyenangkan</span>
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-sm md:text-lg text-muted-foreground px-4">
             Akses Lembar Kerja Peserta Didik (LKPD) digital interaktif untuk menunjang proses pembelajaranmu di mana saja dan kapan saja.
           </p>
         </div>
 
         <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CardContent className="pt-8 pb-8 space-y-6">
+          <CardContent className="pt-6 md:pt-8 pb-6 md:pb-8 space-y-5 md:space-y-6">
             <div className="flex items-center gap-3 text-primary mb-2">
-              <GraduationCap className="h-6 w-6" />
-              <h2 className="text-xl font-bold">Pilih Kelas Kamu</h2>
+              <GraduationCap className="h-5 w-5 md:h-6 md:w-6" />
+              <h2 className="text-lg md:text-xl font-bold">Pilih Kelas Kamu</h2>
             </div>
             
             <div className="space-y-4">
@@ -84,7 +84,7 @@ export default function LandingPage() {
                 </div>
               ) : (
                 <Select onValueChange={setSelectedClass} value={selectedClass}>
-                  <SelectTrigger className="h-12 text-lg">
+                  <SelectTrigger className="h-12 text-base md:text-lg">
                     <SelectValue placeholder="Pilih jenjang kelas..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -100,7 +100,7 @@ export default function LandingPage() {
               )}
 
               <Button 
-                className="w-full h-12 text-lg font-bold group" 
+                className="w-full h-12 text-base md:text-lg font-bold group" 
                 disabled={!selectedClass || loading}
                 onClick={handleStart}
               >
@@ -112,8 +112,8 @@ export default function LandingPage() {
         </Card>
       </main>
 
-      <footer className="p-8 text-center text-sm text-muted-foreground bg-white/5 dark:bg-black/20">
-        &copy; {new Date().getFullYear()} LearnScape - LKPD DIGITAL INTERAKTIF. All rights reserved.
+      <footer className="p-6 md:p-8 text-center text-xs md:text-sm text-muted-foreground bg-white/5 dark:bg-black/20">
+        &copy; {new Date().getFullYear()} LearnScape - LKPD DIGITAL INTERAKTIF.
       </footer>
     </div>
   );

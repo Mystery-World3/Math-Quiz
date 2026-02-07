@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -9,15 +9,28 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Submission } from '@/lib/types';
-import { Users, FileText, LayoutDashboard, LogOut, ChevronRight, Settings, Loader2, BarChart3 } from 'lucide-react';
+import { 
+  Users, 
+  FileText, 
+  LayoutDashboard, 
+  LogOut, 
+  ChevronRight, 
+  Settings, 
+  Loader2, 
+  BarChart3, 
+  Menu,
+  X 
+} from 'lucide-react';
 import { useFirestore, useCollection } from '@/firebase';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { collection, query, orderBy } from 'firebase/firestore';
 import { ModeToggle } from '@/components/ModeToggle';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function TeacherDashboard() {
   const db = useFirestore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const submissionsQuery = useMemo(() => {
     if (!db) return null;
@@ -52,34 +65,39 @@ export default function TeacherDashboard() {
     return Math.round(total / safeSubmissions.length);
   }, [safeSubmissions]);
 
+  const NavContent = () => (
+    <nav className="flex-1 p-4 space-y-2">
+      <Link href="/teacher/dashboard">
+        <Button variant="secondary" className="w-full justify-start font-bold">
+          <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+        </Button>
+      </Link>
+      <Link href="/teacher/questions">
+        <Button variant="ghost" className="w-full justify-start">
+          <FileText className="mr-2 h-4 w-4" /> Kelola Soal
+        </Button>
+      </Link>
+      <Link href="/teacher/classes">
+        <Button variant="ghost" className="w-full justify-start">
+          <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
+        </Button>
+      </Link>
+      <Link href="/teacher/results">
+        <Button variant="ghost" className="w-full justify-start">
+          <Users className="mr-2 h-4 w-4" /> Kelola Nilai
+        </Button>
+      </Link>
+    </nav>
+  );
+
   return (
     <div className="min-h-screen flex bg-background transition-colors duration-300">
+      {/* Sidebar Desktop */}
       <aside className="w-64 bg-card border-r hidden md:flex flex-col">
         <div className="p-6">
           <Logo />
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <Link href="/teacher/dashboard">
-            <Button variant="secondary" className="w-full justify-start font-bold">
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-            </Button>
-          </Link>
-          <Link href="/teacher/questions">
-            <Button variant="ghost" className="w-full justify-start">
-              <FileText className="mr-2 h-4 w-4" /> Kelola Soal
-            </Button>
-          </Link>
-          <Link href="/teacher/classes">
-            <Button variant="ghost" className="w-full justify-start">
-              <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
-            </Button>
-          </Link>
-          <Link href="/teacher/results">
-            <Button variant="ghost" className="w-full justify-start">
-              <Users className="mr-2 h-4 w-4" /> Kelola Nilai
-            </Button>
-          </Link>
-        </nav>
+        <NavContent />
         <div className="p-4 border-t space-y-4">
           <div className="px-4 py-2 flex justify-between items-center bg-muted/50 rounded-lg">
             <span className="text-xs font-bold text-muted-foreground">Mode Tema</span>
@@ -94,63 +112,85 @@ export default function TeacherDashboard() {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-card border-b flex items-center justify-between px-8">
-          <h1 className="text-xl font-bold text-primary">Overview Nilai Siswa (Real-time)</h1>
-          <div className="md:hidden">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-4 md:px-8">
+          <div className="flex items-center gap-3">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <div className="p-6 border-b">
+                  <Logo />
+                </div>
+                <NavContent />
+                <div className="p-4 border-t mt-auto">
+                  <Link href="/">
+                    <Button variant="ghost" className="w-full justify-start text-red-500">
+                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </Button>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-lg md:text-xl font-bold text-primary truncate">Overview Nilai</h1>
+          </div>
+          <div className="flex items-center gap-2">
             <ModeToggle />
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-8 space-y-8">
+        <div className="flex-1 overflow-auto p-4 md:p-8 space-y-6 md:space-y-8">
           {loading && (
             <div className="flex items-center gap-2 text-primary font-medium">
               <Loader2 className="h-4 w-4 animate-spin" /> Memperbarui data...
             </div>
           )}
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-primary text-primary-foreground">
-              <CardContent className="p-6 flex items-center justify-between">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <Card className="bg-primary text-primary-foreground shadow-md">
+              <CardContent className="p-5 md:p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-80">Total Peserta</p>
-                  <p className="text-4xl font-bold">{safeSubmissions.length}</p>
+                  <p className="text-xs md:text-sm opacity-80">Total Peserta</p>
+                  <p className="text-3xl md:text-4xl font-bold">{safeSubmissions.length}</p>
                 </div>
-                <Users className="h-10 w-10 opacity-30" />
+                <Users className="h-8 w-8 md:h-10 md:w-10 opacity-30" />
               </CardContent>
             </Card>
             
-            <Card className="bg-card">
-              <CardContent className="p-6 flex items-center justify-between">
+            <Card className="bg-card shadow-md">
+              <CardContent className="p-5 md:p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Rata-rata Skor</p>
-                  <p className="text-4xl font-bold text-primary">{averageScore}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Rata-rata Skor</p>
+                  <p className="text-3xl md:text-4xl font-bold text-primary">{averageScore}</p>
                 </div>
-                <BarChart3 className="h-10 w-10 text-accent opacity-50" />
+                <BarChart3 className="h-8 w-8 md:h-10 md:w-10 text-accent opacity-50" />
               </CardContent>
             </Card>
 
-            <Card className="bg-card">
-              <CardContent className="p-6 flex items-center justify-between">
+            <Card className="bg-card shadow-md hidden sm:block lg:flex">
+              <CardContent className="p-5 md:p-6 flex items-center justify-between w-full">
                 <div>
-                  <p className="text-sm text-muted-foreground">Peserta Terakhir</p>
-                  <p className="text-lg font-bold truncate max-w-[150px]">{safeSubmissions[0]?.studentName || '-'}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Peserta Terakhir</p>
+                  <p className="text-base md:text-lg font-bold truncate max-w-[120px] md:max-w-[150px]">{safeSubmissions[0]?.studentName || '-'}</p>
                 </div>
-                <ChevronRight className="h-8 w-8 text-muted-foreground" />
+                <ChevronRight className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
               </CardContent>
             </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Distribusi Nilai</CardTitle>
+            <Card className="bg-card shadow-md">
+              <CardHeader>
+                <CardTitle className="text-base md:text-lg">Distribusi Nilai</CardTitle>
               </CardHeader>
-              <CardContent className="h-[300px]">
+              <CardContent className="h-[250px] md:h-[300px] w-full">
                 <ChartContainer config={{ count: { label: "Jumlah Siswa", color: "hsl(var(--primary))" } }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
-                      <XAxis dataKey="name" />
-                      <YAxis allowDecimals={false} />
+                      <XAxis dataKey="name" fontSize={12} />
+                      <YAxis allowDecimals={false} fontSize={12} />
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                         {chartData.map((entry, index) => (
@@ -163,32 +203,32 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Daftar Nilai Terbaru</CardTitle>
+            <Card className="bg-card shadow-md overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between py-4">
+                <CardTitle className="text-base md:text-lg">Nilai Terbaru</CardTitle>
                 <Link href="/teacher/results">
-                  <Button variant="link" size="sm">Kelola Semua</Button>
+                  <Button variant="link" size="sm" className="h-auto p-0">Lihat Semua</Button>
                 </Link>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nama</TableHead>
+                      <TableHead className="pl-4">Nama</TableHead>
                       <TableHead>Kelas</TableHead>
-                      <TableHead>Skor</TableHead>
+                      <TableHead className="pr-4">Skor</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {safeSubmissions.slice(0, 5).map((s) => (
                       <TableRow key={s.id}>
-                        <TableCell className="font-bold">{s.studentName}</TableCell>
-                        <TableCell><Badge variant="outline">{s.classLevel}</Badge></TableCell>
-                        <TableCell className={`font-bold ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>{s.score}</TableCell>
+                        <TableCell className="font-bold pl-4 text-sm truncate max-w-[100px]">{s.studentName}</TableCell>
+                        <TableCell className="text-sm"><Badge variant="outline" className="whitespace-nowrap">{s.classLevel}</Badge></TableCell>
+                        <TableCell className={`font-bold pr-4 text-sm ${s.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>{s.score}</TableCell>
                       </TableRow>
                     ))}
                     {safeSubmissions.length === 0 && !loading && (
-                      <TableRow><TableCell colSpan={3} className="text-center py-4 italic text-muted-foreground">Belum ada data</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={3} className="text-center py-4 italic text-muted-foreground text-sm">Belum ada data</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
