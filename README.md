@@ -52,4 +52,9 @@ Kontribusi sangat dihargai! Jika Anda ingin meningkatkan proyek ini, silakan:
 Proyek ini dilisensikan di bawah MIT License - lihat file [LICENSE](LICENSE) untuk detailnya.
 
 ---
-**Developed with ❤️ by [Mishbahul](https://github.com/Mystery-World3)**
+
+## 👨‍💻 Author
+
+**Muhammad Mishbahul Muflihin** *Information Technology Student | Darussalam Gontor University* 
+<br>
+ Email: [mishbahulmuflihin@gmail.com](mailto:mishbahulmuflihin@gmail.com)
