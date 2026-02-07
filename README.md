@@ -2,8 +2,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Language](https://img.shields.io/badge/Language-JavaScript-orange)
+![Deployment](https://img.shields.io/badge/Deployed_on-Vercel-black?logo=vercel)
 
 Sebuah aplikasi kuis matematika interaktif yang dirancang untuk menguji kecepatan dan ketepatan berhitung. Proyek ini dibangun dengan fokus pada antarmuka yang bersih dan pengalaman pengguna yang menyenangkan.
+
+## 🔗 Live Demo
+Coba aplikasinya langsung di sini:  
+**[https://math-quiz-five-green.vercel.app/](https://math-quiz-five-green.vercel.app/)**
 
 ## 🚀 Fitur Utama
 
@@ -16,10 +21,11 @@ Sebuah aplikasi kuis matematika interaktif yang dirancang untuk menguji kecepata
 
 * **Frontend:** HTML5, CSS3 (Modern UI)
 * **Logic:** JavaScript (ES6+) - Menggunakan algoritma pembuat soal acak untuk memastikan kuis selalu bervariasi.
+* **Deployment:** Vercel
 
-## 💻 Cara Menjalankan Proyek
+## 💻 Cara Menjalankan Proyek Secara Lokal
 
-Jika Anda ingin mencoba aplikasi ini secara lokal di komputer Anda, ikuti langkah-langkah berikut:
+Jika Anda ingin mencoba aplikasi ini di komputer Anda sendiri:
 
 1.  **Clone repositori ini:**
     ```bash
