@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { GraduationCap, ArrowRight, Loader2 } from 'lucide-react';
-import Image from 'next/image';
 import { getClasses } from '@/lib/storage';
 import { ClassLevelData } from '@/lib/types';
 import { useFirestore } from '@/firebase';
@@ -56,7 +55,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-12">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
         <div className="text-center space-y-4 max-w-2xl">
           <h1 className="text-4xl md:text-6xl font-headline font-bold text-primary leading-tight">
             Belajar Jadi Lebih <span className="text-accent">Menyenangkan</span>
@@ -106,17 +105,6 @@ export default function LandingPage() {
             </div>
           </CardContent>
         </Card>
-
-        <div className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl">
-          <Image 
-            src="https://picsum.photos/seed/learn1/1200/600" 
-            alt="Students Learning" 
-            fill
-            className="object-cover opacity-90"
-            data-ai-hint="education students"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent" />
-        </div>
       </main>
 
       <footer className="p-8 text-center text-sm text-muted-foreground bg-white/50">
