@@ -28,35 +28,56 @@ export type EvaluateExamInput = z.infer<typeof EvaluateExamInputSchema>;
 export type EvaluateExamOutput = z.infer<typeof EvaluateExamOutputSchema>;
 
 export async function evaluateExamAI(input: EvaluateExamInput): Promise<EvaluateExamOutput> {
-  return evaluateExamFlow(input);
+  try {
+    return await evaluateExamFlow(input);
+  } catch (error) {
+    console.error("AI Evaluation failed, using fallback logic", error);
+    // Fallback logic if AI fails
+    const results = input.questions.map((q, i) => {
+      const studentAns = (input.answers[i] || "").toLowerCase().trim();
+      const teacherKey = q.correctAnswer.toLowerCase().trim();
+      
+      if (q.type === 'multiple-choice') return studentAns === teacherKey;
+      
+      // Basic normalization for fallback
+      const clean = (s: string) => s.replace(/[^0-9a-z]/g, '');
+      return clean(studentAns).includes(clean(teacherKey)) || clean(teacherKey).includes(clean(studentAns));
+    });
+    
+    const correctCount = results.filter(r => r === true).length;
+    return {
+      gradingResults: results,
+      totalScore: Math.round((correctCount / input.questions.length) * 100)
+    };
+  }
 }
 
 const prompt = ai.definePrompt({
   name: 'evaluateExamPrompt',
   input: { schema: EvaluateExamInputSchema },
   output: { schema: EvaluateExamOutputSchema },
-  prompt: `You are an expert Indonesian teacher. Evaluate a student's exam.
+  prompt: `You are an expert Indonesian teacher. Evaluate a student's exam answers against the teacher's key.
   
-  Questions and Answers:
+  QUESTIONS AND ANSWERS:
   {{#each questions}}
+  ---
   Question {{add @index 1}}: {{{text}}}
   Type: {{type}}
   {{#if options}}Options: {{#each options}}[{{@index}}] {{this}} {{/each}}{{/if}}
   Teacher's Correct Key: {{{correctAnswer}}}
   Student's Answer: {{{lookup ../answers @index}}}
-  ---
   {{/each}}
 
-  Evaluation Rules:
-  1. For 'multiple-choice': The answer is an index string (e.g., "0", "1"). It must match exactly with the Teacher's Key.
-  2. For 'numeric' and 'short-answer': BE FLEXIBLE AND SEMANTIC.
-     - Accept answers even if they include units (e.g., "5 kg" is correct if key is "5").
-     - Accept answers even if they include variables or prefixes (e.g., "x = 2" is correct if key is "2").
-     - Accept answers that include the calculation steps/logic as long as the final result matches the key.
-     - For multiple values (e.g., "4 dan 8"), order doesn't matter ("8 dan 4" is also correct).
-     - If the student's answer is logically equivalent to the teacher's key, mark it as CORRECT (true).
+  EVALUATION RULES:
+  1. Multiple-choice: Student answer must match the Teacher's Key (which is the index string).
+  2. Numeric/Short-answer: BE SMART AND SEMANTIC.
+     - Accept answers with units (e.g., "5 m" or "5 meter" is correct if key is "5").
+     - Accept answers with prefixes (e.g., "x = 4" is correct if key is "4").
+     - Accept answers that show calculation steps as long as the final answer matches.
+     - Ignore capitalization and extra spaces.
+     - If the student's answer is logically equivalent, mark as true.
   
-  Output the results as an array of booleans corresponding to each question, and calculate the total score (0-100 based on percentage of correct answers).`,
+  OUTPUT: Provide an array of booleans (gradingResults) and a totalScore (0-100).`,
 });
 
 const evaluateExamFlow = ai.defineFlow(
@@ -67,7 +88,7 @@ const evaluateExamFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output) throw new Error('Failed to evaluate exam');
+    if (!output) throw new Error('AI returned no output');
     return output;
   }
 );

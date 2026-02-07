@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -110,12 +111,14 @@ export function deleteQuestion(db: Firestore, id: string) {
 // Management for Submissions
 export function saveSubmission(db: Firestore, submission: Omit<Submission, 'id'>) {
   const colRef = collection(db, 'submissions');
-  addDoc(colRef, submission).catch(async () => {
+  return addDoc(colRef, submission).catch(async (err) => {
+    console.error("Error saving submission:", err);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: colRef.path,
       operation: 'write',
       requestResourceData: submission
     }));
+    throw err;
   });
 }
 
@@ -135,10 +138,12 @@ export function updateSubmission(db: Firestore, id: string, data: Partial<Submis
 export function deleteSubmission(db: Firestore, id: string) {
   if (!id) return;
   const docRef = doc(db, 'submissions', id);
-  deleteDoc(docRef).catch(async (err) => {
+  return deleteDoc(docRef).catch(async (err) => {
+    console.error("Error deleting submission:", err);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete'
     }));
+    throw err;
   });
 }
