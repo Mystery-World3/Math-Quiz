@@ -31,7 +31,8 @@ export default function LandingPage() {
       if (db) {
         try {
           const data = await getClasses(db);
-          setClasses(data);
+          // Hanya tampilkan kelas yang aktif
+          setClasses(data.filter(c => c.isActive !== false));
         } catch (error) {
           console.error("Error loading classes:", error);
         } finally {
@@ -89,7 +90,7 @@ export default function LandingPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {classes.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">Belum ada kelas</div>
+                      <div className="p-4 text-center text-sm text-muted-foreground">Belum ada kelas aktif</div>
                     ) : (
                       classes.map((c) => (
                         <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>

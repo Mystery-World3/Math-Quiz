@@ -2,6 +2,7 @@
 export interface ClassLevelData {
   id: string;
   name: string;
+  isActive?: boolean;
 }
 
 export type QuestionType = 'multiple-choice' | 'numeric' | 'short-answer';

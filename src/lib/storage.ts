@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -9,7 +10,8 @@ import {
   doc, 
   query, 
   where,
-  Firestore
+  Firestore,
+  writeBatch
 } from 'firebase/firestore';
 import { Question, Submission, ClassLevelData } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -19,27 +21,48 @@ import { FirestorePermissionError } from '@/firebase/errors';
 export async function getClasses(db: Firestore): Promise<ClassLevelData[]> {
   const colRef = collection(db, 'classes');
   const snapshot = await getDocs(colRef);
-  return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as ClassLevelData));
+  return snapshot.docs.map(d => ({ 
+    ...d.data(), 
+    id: d.id,
+    isActive: d.data().isActive !== false // Default true if not defined
+  } as ClassLevelData));
 }
 
-export function saveClass(db: Firestore, classData: ClassLevelData) {
-  const { id, name } = classData;
+export async function saveClass(db: Firestore, classData: ClassLevelData, oldName?: string) {
+  const { id, name, isActive } = classData;
+  const data = { name, isActive: isActive !== false };
+
   if (id && id.length > 5) {
     const docRef = doc(db, 'classes', id);
-    updateDoc(docRef, { name }).catch(async () => {
+    await updateDoc(docRef, data).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: docRef.path,
         operation: 'write',
-        requestResourceData: { name }
+        requestResourceData: data
       }));
     });
+
+    // If name changed, update all questions associated with this class
+    if (oldName && oldName !== name) {
+      const questionsRef = collection(db, 'questions');
+      const q = query(questionsRef, where('classLevel', '==', oldName));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((d) => {
+          batch.update(d.ref, { classLevel: name });
+        });
+        await batch.commit();
+      }
+    }
   } else {
     const colRef = collection(db, 'classes');
-    addDoc(colRef, { name }).catch(async () => {
+    await addDoc(colRef, data).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: colRef.path,
         operation: 'write',
-        requestResourceData: { name }
+        requestResourceData: data
       }));
     });
   }
@@ -137,7 +160,6 @@ export function updateSubmission(db: Firestore, id: string, data: Partial<Submis
 export function deleteSubmission(db: Firestore, id: string) {
   if (!id) return;
   const docRef = doc(db, 'submissions', id);
-  // Langsung hapus tanpa await agar optimis di UI
   deleteDoc(docRef).catch(async (err) => {
     console.error("Error deleting submission:", err);
     errorEmitter.emit('permission-error', new FirestorePermissionError({

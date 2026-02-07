@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { getClasses, saveClass, deleteClass } from '@/lib/storage';
 import { ClassLevelData } from '@/lib/types';
 import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, Settings, Loader2, Users } from 'lucide-react';
@@ -47,6 +49,21 @@ export default function ManageClasses() {
     setIsModalOpen(true);
   };
 
+  const handleToggleActive = async (cls: ClassLevelData) => {
+    if (!db) return;
+    const updated = { ...cls, isActive: !cls.isActive };
+    try {
+      await saveClass(db, updated);
+      await loadClasses();
+      toast({ 
+        title: updated.isActive ? "Kelas Diaktifkan" : "Kelas Dinonaktifkan", 
+        description: `Status ${cls.name} berhasil diubah.` 
+      });
+    } catch (error) {
+      toast({ title: "Gagal", description: "Terjadi kesalahan sistem.", variant: "destructive" });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!db) return;
     if (confirm('Menghapus kelas akan berdampak pada soal dan nilai yang menggunakan kelas ini. Lanjutkan?')) {
@@ -69,16 +86,17 @@ export default function ManageClasses() {
 
     const newClass: ClassLevelData = {
       id: editingClass?.id || '',
-      name: classNameInput.trim()
+      name: classNameInput.trim(),
+      isActive: editingClass ? editingClass.isActive : true
     };
 
     try {
-      await saveClass(db, newClass);
+      await saveClass(db, newClass, editingClass?.name);
       await loadClasses();
       setIsModalOpen(false);
       setEditingClass(null);
       setClassNameInput('');
-      toast({ title: "Berhasil", description: "Kelas telah disimpan." });
+      toast({ title: "Berhasil", description: "Kelas telah disimpan dan disinkronkan." });
     } catch (error) {
       toast({ title: "Gagal", description: "Terjadi kesalahan saat menyimpan kelas.", variant: "destructive" });
     }
@@ -86,7 +104,7 @@ export default function ManageClasses() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+      <aside className="w-64 bg-card border-r hidden md:flex flex-col">
         <div className="p-6">
           <Logo />
         </div>
@@ -112,17 +130,10 @@ export default function ManageClasses() {
             </Button>
           </Link>
         </nav>
-        <div className="p-4 border-t">
-          <Link href="/">
-            <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
-          </Link>
-        </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-8">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-8">
           <h1 className="text-xl font-bold text-primary">Manajemen Jenjang Kelas</h1>
           <Dialog open={isModalOpen} onOpenChange={(open) => {
             setIsModalOpen(open);
@@ -146,8 +157,13 @@ export default function ManageClasses() {
                   <Input 
                     value={classNameInput} 
                     onChange={(e) => setClassNameInput(e.target.value)} 
-                    placeholder="Contoh: Kelas 7, Kelas 8, Alumni..." 
+                    placeholder="Contoh: Kelas 7, Kelas 8..." 
                   />
+                  {editingClass && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      *Mengubah nama akan otomatis memperbarui nama kelas pada semua soal terkait.
+                    </p>
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -176,14 +192,25 @@ export default function ManageClasses() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {classes.map((cls) => (
-                      <div key={cls.id} className="flex items-center justify-between p-4 bg-white rounded-xl border hover:shadow-sm transition-shadow">
+                      <div key={cls.id} className={`flex items-center justify-between p-4 bg-card rounded-xl border transition-all ${!cls.isActive ? 'opacity-60 bg-muted/50' : 'hover:shadow-sm'}`}>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${cls.isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                             {cls.name.charAt(0)}
                           </div>
-                          <span className="font-bold text-lg">{cls.name}</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-lg">{cls.name}</span>
+                            <span className={`text-[10px] font-medium ${cls.isActive ? 'text-green-500' : 'text-red-400'}`}>
+                              {cls.isActive ? 'Muncul di Siswa' : 'Disembunyikan'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mr-2">
+                            <Switch 
+                              checked={cls.isActive} 
+                              onCheckedChange={() => handleToggleActive(cls)}
+                            />
+                          </div>
                           <Button variant="ghost" size="icon" className="text-blue-500" onClick={() => handleEdit(cls)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
