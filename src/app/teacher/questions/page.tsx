@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -11,13 +12,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { getQuestions, saveQuestion, deleteQuestion, getClasses } from '@/lib/storage';
 import { Question, ClassLevelData, QuestionType } from '@/lib/types';
-import { LayoutDashboard, FileText, LogOut, Plus, Trash2, Edit2, CheckCircle2, Settings, Hash, ListTodo, Type, Loader2, Users } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  LogOut, 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  CheckCircle2, 
+  Settings, 
+  Hash, 
+  ListTodo, 
+  Type, 
+  Loader2, 
+  Users,
+  Menu
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore } from '@/firebase';
 import { SymbolKeyboard } from '@/components/SymbolKeyboard';
 import { ModeToggle } from '@/components/ModeToggle';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function ManageQuestions() {
   const db = useFirestore();
@@ -124,6 +141,31 @@ export default function ManageQuestions() {
     }
   };
 
+  const NavContent = () => (
+    <nav className="flex-1 p-4 space-y-2">
+      <Link href="/teacher/dashboard">
+        <Button variant="ghost" className="w-full justify-start">
+          <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+        </Button>
+      </Link>
+      <Link href="/teacher/questions">
+        <Button variant="secondary" className="w-full justify-start font-bold">
+          <FileText className="mr-2 h-4 w-4" /> Kelola Soal
+        </Button>
+      </Link>
+      <Link href="/teacher/classes">
+        <Button variant="ghost" className="w-full justify-start">
+          <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
+        </Button>
+      </Link>
+      <Link href="/teacher/results">
+        <Button variant="ghost" className="w-full justify-start">
+          <Users className="mr-2 h-4 w-4" /> Kelola Nilai
+        </Button>
+      </Link>
+    </nav>
+  );
+
   const insertSymbolToText = (symbol: string) => setQText(prev => prev + symbol);
   const insertSymbolToAnswer = (symbol: string) => setQCorrectValue(prev => prev + symbol);
   const insertSymbolToOption = (symbol: string, idx: number) => {
@@ -138,28 +180,7 @@ export default function ManageQuestions() {
         <div className="p-6">
           <Logo />
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <Link href="/teacher/dashboard">
-            <Button variant="ghost" className="w-full justify-start">
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-            </Button>
-          </Link>
-          <Link href="/teacher/questions">
-            <Button variant="secondary" className="w-full justify-start font-bold">
-              <FileText className="mr-2 h-4 w-4" /> Kelola Soal
-            </Button>
-          </Link>
-          <Link href="/teacher/classes">
-            <Button variant="ghost" className="w-full justify-start">
-              <Settings className="mr-2 h-4 w-4" /> Kelola Kelas
-            </Button>
-          </Link>
-          <Link href="/teacher/results">
-            <Button variant="ghost" className="w-full justify-start">
-              <Users className="mr-2 h-4 w-4" /> Kelola Nilai
-            </Button>
-          </Link>
-        </nav>
+        <NavContent />
         <div className="p-4 border-t space-y-4">
           <div className="px-4 py-2 flex justify-between items-center bg-muted/50 rounded-lg">
             <span className="text-xs font-bold text-muted-foreground">Tema</span>
@@ -174,13 +195,36 @@ export default function ManageQuestions() {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-card border-b flex items-center justify-between px-8">
-          <h1 className="text-xl font-bold text-primary">Manajemen Soal LKPD</h1>
-          <div className="flex gap-4 items-center">
+        <header className="h-16 bg-card border-b flex items-center justify-between px-4 md:px-8">
+          <div className="flex items-center gap-3">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <div className="p-6 border-b">
+                  <Logo />
+                </div>
+                <NavContent />
+                <div className="p-4 border-t mt-auto">
+                  <Link href="/">
+                    <Button variant="ghost" className="w-full justify-start text-red-500">
+                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </Button>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-lg md:text-xl font-bold text-primary truncate">Manajemen Soal</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
             <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
-                <Button className="font-bold gap-2">
-                  <Plus className="h-4 w-4" /> Tambah Soal
+                <Button className="font-bold gap-2 h-9 px-3 sm:h-10 sm:px-4">
+                  <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Tambah Soal</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -188,7 +232,7 @@ export default function ManageQuestions() {
                   <DialogTitle>{editingQuestion ? 'Edit Soal' : 'Tambah Soal Baru'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Jenjang Kelas</Label>
                       <Select value={qClass} onValueChange={setQClass}>
@@ -302,7 +346,7 @@ export default function ManageQuestions() {
                       ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {classQuestions.map((q) => (
-                            <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <Card key={q.id} className="hover:shadow-md transition-shadow relative overflow-hidden group border-muted">
                               <CardContent className="p-6">
                                 <div className="flex justify-between items-start gap-4">
                                   <div className="flex-1"><p className="font-bold leading-relaxed">{q.text}</p></div>
@@ -315,7 +359,7 @@ export default function ManageQuestions() {
                                   <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight">
                                     {q.type === 'numeric' ? 'Angka' : q.type === 'multiple-choice' ? 'Pilihan' : 'Isian'}
                                   </Badge>
-                                  <Badge variant="outline" className="text-[10px] border-green-200 bg-green-50 text-green-700">
+                                  <Badge variant="outline" className="text-[10px] border-green-200/50 bg-green-50/10 text-green-700 dark:text-green-400">
                                     Ans: {q.type === 'multiple-choice' ? (q.options ? q.options[parseInt(q.correctAnswer)] : '-') : q.correctAnswer}
                                   </Badge>
                                 </div>
