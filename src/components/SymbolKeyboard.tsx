@@ -1,11 +1,10 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Sigma } from "lucide-react";
 
 export const MATH_SYMBOLS = [
-  'x', 'x₁', 'x₂', 'y', 'y₁', 'y₂', 'm', '+', '-', '×', '÷', '·', '=', '≠', '≈', '→', '±', '√', 'π', '²', '³', 'ⁿ', '°', '<', '>', '≤', '≥', '(', ')', '[', ']', '{', '}'
+  'x', 'x₁', 'x₂', 'y', 'y₁', 'y₂', 'r', 'r₁', 'r₂', 'm', '+', '-', '×', '÷', '·', '=', '≠', '≈', '→', '±', '√', 'π', '²', '³', 'ⁿ', '°', '<', '>', '≤', '≥', '(', ')', '[', ']', '{', '}'
 ];
 
 interface SymbolKeyboardProps {
