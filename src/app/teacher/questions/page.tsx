@@ -219,6 +219,9 @@ export default function ManageQuestions() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="md:hidden">
+              <ModeToggle />
+            </div>
             <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button className="font-bold gap-2 h-9 px-3 sm:h-10 sm:px-4">
@@ -286,7 +289,7 @@ export default function ManageQuestions() {
                               />
                             </div>
                             <div className="flex flex-wrap gap-1 pl-12">
-                               {['x', 'x₁', 'x₂', 'y', 'y₁', 'y₂', 'r', 'r₁', 'r₂', 'm', '²', '³', '√', 'π'].map(s => (
+                               {['x', 'x₁', 'x₂', 'y', 'y₁', 'y₂', 'r', 'r₁', 'r₂', 'm', '²', '³', '°', '√', 'π'].map(s => (
                                  <Button key={s} variant="ghost" size="sm" className="h-7 text-xs" onClick={() => insertSymbolToOption(s, idx)}>{s}</Button>
                                ))}
                             </div>
@@ -313,9 +316,6 @@ export default function ManageQuestions() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <div className="md:hidden">
-              <ModeToggle />
-            </div>
           </div>
         </header>
 
