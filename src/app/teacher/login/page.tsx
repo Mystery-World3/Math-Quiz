@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
-import { Lock, LogIn } from 'lucide-react';
+import { Lock, LogIn, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function TeacherLoginPage() {
@@ -42,7 +42,7 @@ export default function TeacherLoginPage() {
         <Logo />
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
         <Card className="w-full max-w-md shadow-2xl">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -58,7 +58,7 @@ export default function TeacherLoginPage() {
                 <Input 
                   id="password" 
                   type="password" 
-                  placeholder="Enter Your Password" 
+                  placeholder="Masukkan Kata Sandi" 
                   className="h-12"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -80,6 +80,15 @@ export default function TeacherLoginPage() {
             </Button>
           </CardFooter>
         </Card>
+
+        <Button 
+          variant="ghost" 
+          onClick={() => router.push('/')} 
+          className="text-muted-foreground group"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" /> 
+          Kembali ke Halaman Siswa
+        </Button>
       </main>
     </div>
   );
