@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI Flow to evaluate student's exam answers with semantic understanding.
@@ -37,11 +36,19 @@ export async function evaluateExamAI(input: EvaluateExamInput): Promise<Evaluate
       const studentAns = (input.answers[i] || "").toLowerCase().trim();
       const teacherKey = q.correctAnswer.toLowerCase().trim();
       
+      // JIKA JAWABAN KOSONG, OTOMATIS SALAH
+      if (!studentAns) return false;
+
       if (q.type === 'multiple-choice') return studentAns === teacherKey;
       
       // Basic normalization for fallback
       const clean = (s: string) => s.replace(/[^0-9a-z]/g, '');
-      return clean(studentAns).includes(clean(teacherKey)) || clean(teacherKey).includes(clean(studentAns));
+      const sClean = clean(studentAns);
+      const tClean = clean(teacherKey);
+
+      if (!sClean) return false; // Jika setelah dibersihkan jadi kosong, dianggap salah
+
+      return sClean === tClean || sClean.includes(tClean) || tClean.includes(sClean);
     });
     
     const correctCount = results.filter(r => r === true).length;
@@ -69,8 +76,9 @@ const prompt = ai.definePrompt({
   {{/each}}
 
   EVALUATION RULES:
-  1. Multiple-choice: Student answer must match the Teacher's Key (which is the index string).
-  2. Numeric/Short-answer: BE SMART AND SEMANTIC.
+  1. IF Student's Answer is empty, null, or only whitespace, ALWAYS mark as FALSE.
+  2. Multiple-choice: Student answer must match the Teacher's Key index.
+  3. Numeric/Short-answer: BE SMART AND SEMANTIC.
      - Accept answers with units (e.g., "5 m" or "5 meter" is correct if key is "5").
      - Accept answers with prefixes (e.g., "x = 4" is correct if key is "4").
      - Accept answers that show calculation steps as long as the final answer matches.
